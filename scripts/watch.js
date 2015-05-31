@@ -1,9 +1,11 @@
+/* global global: true; */
 "use strict";
 
 var build = require('./build');
 var watchify = require('watchify');
 var fs = require('fs');
 var vars = require('./vars.json');
+global.watch = true;
 
 //start watchifying all the browserify bundles
 Object.keys(build.browserifyBundles).forEach(function (key) {

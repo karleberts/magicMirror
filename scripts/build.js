@@ -1,5 +1,6 @@
 "use strict";
 var fs = require('fs');
+var child_process = require('child_process');
 
 var vars = require('./vars.json');
 //list of all modules we can build
@@ -43,4 +44,15 @@ if (shouldBuild('ui')) {
 	b.bundle()
 		.on("error", function (err) { console.log("Error : " + err.message); })
 		.pipe(fs.createWriteStream(b.__outFile));
+}
+
+if (shouldBuild('css')) {
+	var args = [
+		vars.dirs.ui + '/scss/main.scss',
+		vars.dirs.ui + '/public/main.css'
+	];
+	if (global.watch) {
+		args.unshift('-w');
+	}
+	child_process.spawn(__dirname + '/../node_modules/.bin/node-sass', args);
 }

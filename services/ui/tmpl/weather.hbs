@@ -1,3 +1,17 @@
-<div id="mmContainer">
-	{{content}}
+<div class="sun">
+	<i class="wi wi-sunrise"></i>
+	<span>{{sunrise}}</span>
+	<i class="wi wi-sunset"></i>
+	<span>{{sunset}}</span>
+	{{moonPhaseClassName}}
+	<i class="wi {{moonPhase}}"></i>
+</sun>
+<div class="current">
+	<i class="wi {{currentIcon}}"></i>
+	<span class="currentTemp">
+		{{currentTemp}}
+		<i class="wi wi-degrees"></i>
+	</span>
 </div>
+hi:{{maxTemp}}
+low:{{minTemp}}
