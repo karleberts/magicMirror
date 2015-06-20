@@ -3,22 +3,21 @@
 var $ = require('jquery');
 var Promise = require('bluebird');
 var weather = require('./weather');
-var googleApiPromise = require('google-client-api');
+var calendar = require('./calendar');
+var Rx = require('rx');
+var Rxjq = require('rx-jquery');
 
-Promise.all([
-	function () {
-		return new Promise(function (res, rej) {
-			$(document).ready(res);
-		});
-	},
-	googleApiPromise(),
-])
-.then(function (results) {
-	var gapi = results[1];
-	console.log(gapi);
+$(document).ready(function () {
 	var $el = $('#content');
 	var $weatherContainer = $('<div>')
 		.attr('id', 'weatherContainer')
 		.appendTo($el);
-	weather.init($weatherContainer);
+	var $calendarContainer = $('<div>')
+		.attr('id', 'calendarContainer')
+		.appendTo($el);
+	
+	Promise.all([
+		weather.init($weatherContainer),
+		calendar.init($calendarContainer)
+	]);
 });

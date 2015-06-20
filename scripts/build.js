@@ -36,8 +36,8 @@ if (shouldBuild('ui')) {
 		'cache' : {},
 		'packageCache' : {}
 	})
-		//.transform(babelify)
 		.transform(hbsfy)
+		.transform(babelify)
 		.add(vars.dirs.ui + '/js/index.js');
 	b.__outFile = vars.dirs.ui + '/public/bundle.js';
 	module.exports.browserifyBundles.ui = b;

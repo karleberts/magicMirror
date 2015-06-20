@@ -3,6 +3,10 @@ var Promise = require('bluebird');
 var $ = require('jquery');
 var moment = require('moment');
 var querystring = require('querystring');
+var Handlebars = require('hbsfy/runtime');
+Handlebars.registerHelper('debug', function () {
+	debugger;
+});
 
 
 var template = require('../tmpl/weather.hbs');
@@ -12,20 +16,14 @@ var config = gData.config;
 //TODO- any api or other errors should raise errors on the bus
 
 var weather,
-	fetched;
+	fetched,
+	$container;
 
 
 /**
  * Refresh data from the servers if a sufficient amount of time has passed
  */
 function request () {
-	//atm the openweathermap api uses zip code, it could also use lat/long to be more like the forecast.io req and reduce config size
-	//openweathermap is used for current weather info mostly b/c the mapping of the 'current weather icon' in the api response was really easy
-	var openWeatherMapUrl = 'http://api.openweathermap.org/data/2.5/weather';
-	openWeatherMapUrl += '?' + querystring.stringify({
-		'zip' : config.weather.zip,
-		'APPID' : config.apiKeys.openWeatherMap
-	});
 	//forecast.io uses a 'route with a /forecast' root and '/LAT,LONG'
 	//var forecastUrl = 'https://api.forecast.io/forecast/' + config.apiKeys.forecastIo;
 	//forecastUrl += '/' + config.weather.lat + ',' + config.weather.long;
@@ -34,44 +32,45 @@ function request () {
 	var now = moment();
 	if (fetched &&
 			(fetched.isAfter(now.subtract(30, 'minutes'))) &&
-			(Math.abs(fetched.diff(now)) === 0)){
-		//re-request if the last fetch was > 30 min ago OR on a different day
+			(Math.abs(fetched.diff(now, 'days')) === 0)){
+		//only re-request if the last fetch was > 30 min ago OR on a different day
 		return Promise.resolve(weather);
 	} else {
-		return Promise.props({
-			'openWeatherMap' : Promise.resolve($.ajax({
-				'url'		: openWeatherMapUrl,
-				'method'	: 'get'
-			})),
-			'forecastIo' : Promise.resolve($.ajax({
-				'url'		: forecastUrl,
-				'method'	: 'get'
-			}))
-		})
-				.then(function (response) {
-					var openWeatherMap = response.openWeatherMap;
-					var forecast = JSON.parse(response.forecastIo);
-					fetched = moment();
-					//convert the current temp from K to F
-					var currentTemp = Math.round((9 / 5) * (openWeatherMap.main.temp - 273) + 32);
-					var moonPhaseIconClass = moonPhases[Math.round(forecast.daily.data[0].moonPhase / (1/28))];
-					weather = {
-						'sunrise'	: moment.unix(openWeatherMap.sys.sunrise),
-						'sunset'	: moment.unix(openWeatherMap.sys.sunset),
-						'moonPhaseClassName' : moonPhaseIconClass,
-						'id'		: ''+openWeatherMap.weather[0].id,
-						'icon'		: iconTable[openWeatherMap.weather[0].icon],
-						'currentTemp'	: currentTemp,
-						'maxTemp'	: Math.round(forecast.daily.data[0].temperatureMax),
-						'minTemp'	: Math.round(forecast.daily.data[0].temperatureMin),
-					};
-					return weather;
-				})
-				.catch(function (err) {
-					//TODO- raise the err w/ the error service over the bus
-					//for now I'm just gonna rethrow
-					throw err;
-				});
+		return Promise.resolve($.ajax({
+			'url'		: forecastUrl,
+			'method'	: 'get'
+		}))
+			.then(function (response) {
+				var forecast = JSON.parse(response);
+				var currently = forecast.currently;
+				var today = forecast.daily.data[0];
+				fetched = moment();
+				var currentTemp = Math.round(currently.temperature);
+				var moonPhaseIconClass = moonPhases[Math.round(today.moonPhase / (1/28))];
+				weather = {
+					'sunrise'				: moment.unix(today.sunriseTime),
+					'sunset'				: moment.unix(today.sunsetTime),
+					'moonPhaseClassName'	: moonPhaseIconClass,
+					'icon'					: iconTable[today.icon] || 'wi-alien',
+					'currentTemp'			: currentTemp,
+					'maxTemp'				: Math.round(today.temperatureMax),
+					'minTemp'				: Math.round(today.temperatureMin),
+					'upcoming'				: [],
+				};
+				for (var i = 1; i < 4; i++) {
+					weather.upcoming.push({
+						'date'	: moment().add(i, 'days').format('M/D'),
+						'temp'	: Math.round(forecast.daily.data[i].temperatureMax),
+						'icon'	: iconTable[forecast.daily.data[i].icon] || 'wi-alien',
+					});
+				}
+				return weather;
+			})
+			.catch(function (err) {
+				//TODO- raise the err w/ the error service over the bus
+				//for now I'm just gonna rethrow
+				throw err;
+			});
 	}
 }
 
@@ -84,14 +83,34 @@ function render (weather) {
 		'currentTemp'	: weather.currentTemp,
 		'maxTemp'		: weather.maxTemp,
 		'minTemp'		: weather.minTemp,
+		'upcoming'		: weather.upcoming
 	});
 }
 
-function init ($container) {
-	request()
-	.then(function (result) {
-		$container.append(render(result));
-	});
+function init ($el) {
+	$container = $el;
+	return request()
+		.then(function (result) {
+			$container.append(render(result));
+		});
+}
+
+function refresh () {
+	return request()
+		.then(function (result) {
+			$container.append(render(result));
+		});
+}
+function show () {
+	if (!$container.is(':visible')) {
+		return new Promise(function (resolve, reject) {
+			$container.fadeIn({
+				'complete'	: resolve
+			});
+		});
+	} else {
+		return Promise.resolve();
+	}
 }
 
 function processWeatherId () {
@@ -105,7 +124,7 @@ function processWeatherId () {
 	}
 	if (/^5..$/.test(id)) {
 		if ('500' === id) {
-			desc = 'drizzle';;
+			desc = 'drizzle';
 		} else if (id === '511') {
 			desc = 'freezing rain';
 		} else  {
@@ -137,25 +156,37 @@ function processWeatherId () {
 }
 
 var iconTable = {
-	'01d':'wi-day-sunny',
-	'02d':'wi-day-cloudy',
-	'03d':'wi-cloudy',
-	'04d':'wi-cloudy-windy',
-	'09d':'wi-showers',
-	'10d':'wi-rain',
-	'11d':'wi-thunderstorm',
-	'13d':'wi-snow',
-	'50d':'wi-fog',
-	'01n':'wi-night-clear',
-	'02n':'wi-night-cloudy',
-	'03n':'wi-night-cloudy',
-	'04n':'wi-night-cloudy',
-	'09n':'wi-night-showers',
-	'10n':'wi-night-rain',
-	'11n':'wi-night-thunderstorm',
-	'13n':'wi-night-snow',
-	'50n':'wi-night-alt-cloudy-windy',
+	'clear-day'				: 'wi-day-sunny',
+	'clear-night'			: 'wi-night-clear',
+	'rain'					: 'wi-rain',
+	'snow'					: 'wi-snow',
+	'sleet'					: 'wi-sleet',
+	'wind'					: 'wi-windy',
+	'fog'					: 'wi-fog',
+	'cloudy'				: 'wi-cloudy',
+	'partly-cloudy-day'		: 'wi-day-cloudy',
+	'partly-cloudy-night'	: 'wi-night-partly-cloudy'
 };
+//var iconTable = {
+	//'01d':'wi-day-sunny',
+	//'02d':'wi-day-cloudy',
+	//'03d':'wi-cloudy',
+	//'04d':'wi-cloudy-windy',
+	//'09d':'wi-showers',
+	//'10d':'wi-rain',
+	//'11d':'wi-thunderstorm',
+	//'13d':'wi-snow',
+	//'50d':'wi-fog',
+	//'01n':'wi-night-clear',
+	//'02n':'wi-night-cloudy',
+	//'03n':'wi-night-cloudy',
+	//'04n':'wi-night-cloudy',
+	//'09n':'wi-night-showers',
+	//'10n':'wi-night-rain',
+	//'11n':'wi-night-thunderstorm',
+	//'13n':'wi-night-snow',
+	//'50n':'wi-night-alt-cloudy-windy',
+//};
 
 var moonPhases = [
 	'wi-moon-new',

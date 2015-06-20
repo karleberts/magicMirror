@@ -3,7 +3,8 @@
 var Promise = require('bluebird');
 var cp = require('child_process');
 
-var CAPTURE_PATH = '/tmp/webcam.png';
+//TODO- make ramdisk on startup...or verify tor whatev
+var CAPTURE_PATH = '/Volumes/RAM Disk';
 function NoFaces () {
 }
 NoFaces.prototype = Error.prototype;

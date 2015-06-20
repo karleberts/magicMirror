@@ -4,14 +4,24 @@
 	<i class="wi wi-sunset"></i>
 	<span>{{sunset}}</span>
 	{{moonPhaseClassName}}
-	<i class="wi {{moonPhase}}"></i>
-</sun>
-<div class="current">
-	<i class="wi {{currentIcon}}"></i>
-	<span class="currentTemp">
-		{{currentTemp}}
-		<i class="wi wi-degrees"></i>
-	</span>
+	<i class="moonPhase wi {{moonPhase}}"></i>
 </div>
-hi:{{maxTemp}}
-low:{{minTemp}}
+<div class="current">
+	<i class="currentIcon wi {{currentIcon}}"></i>
+	<div class="currentTemp">
+		{{currentTemp}}<i class="wi wi-degrees"></i>
+	</div>
+	<div class="hilo">
+		<div>{{maxTemp}}<i class="wi wi-degrees"></i></div>
+		<div>{{minTemp}}<i class="wi wi-degrees"></i></div>
+	</div>
+</div>
+<div class="upcoming">
+	{{#each upcoming}}
+	<div>
+		<i class="wi {{icon}}"></i>
+		<span class="date">{{date}}</span>
+		<span class="temp">{{temp}}<i class="wi wi-degrees"></i></span>
+	</div>
+	{{/each}}
+</div>

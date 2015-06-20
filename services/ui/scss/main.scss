@@ -1,5 +1,8 @@
 body {
 	background-color: #000;
+	.clear {
+		clear: both;
+	}
 }
 #content {
 	color: #fff;
@@ -7,4 +10,79 @@ body {
 	font-family: "HelveticaNeue-Light";
 	letter-spacing: -2px;
 	-webkit-font-smoothing: antialiased;
+}
+
+
+//weather stuff
+#weatherContainer {
+	position: absolute;
+	right: 0;
+	font-size: 64px;
+	text-align: right;
+	.sun {
+		font-size: 66%;
+		.moonPhase {
+			margin-left: 14px;
+		}
+	}
+	.current {
+		font-size: 215%;
+		line-height: 128px;
+		margin-top: -8px;
+		.currentIcon {
+			font-size: 75%;
+		}
+		.currentTemp {
+			display: inline-block;
+		}
+		.hilo {
+			display: inline-block;
+			font-size: 40%;
+			line-height: 32px;
+			margin-left: -20px;
+		}
+	}
+	.upcoming {
+		margin-top: -8px;
+		font-size: 85%;
+		color: #aaa;
+	}
+}
+
+#calendarContainer {
+	position: absolute;
+	left: 0;
+	font-size: 64px;
+	.date {
+		font-size: 66%;
+	}
+	.time {
+		font-size: 200%;
+		line-height: 128px;
+		margin-top: -8px;
+	}
+	ul.events {
+		color: #aaa;
+		list-style: none;
+		font-size: 45%;
+		margin: 0;
+		padding: 0;
+		li {
+			span {
+				float: left;
+				margin-left: 5px;
+			}
+			.eventDate {
+			}
+			.eventSummary {
+				display: inline-block;
+				max-width: 232px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			.eventTime {
+			}
+		}
+	}
 }

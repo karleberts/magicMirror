@@ -1,1 +1,3 @@
 node_modules
+services/ui/public/bundle.js
+services/ui/public/main.css
