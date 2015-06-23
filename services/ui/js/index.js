@@ -4,8 +4,11 @@ var $ = require('jquery');
 var Promise = require('bluebird');
 var weather = require('./weather');
 var calendar = require('./calendar');
-var Rx = require('rx');
-var Rxjq = require('rx-jquery');
+var eventBus = require('../../eventBus/client');
+Rx.Observable.fromPromise(eventBus.connect())
+	.subscribe(function () {
+		eventBus.subscribe('foo');
+	});
 
 $(document).ready(function () {
 	var $el = $('#content');
