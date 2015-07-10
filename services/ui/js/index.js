@@ -1,14 +1,26 @@
 "use strict";
 
 var $ = require('jquery');
+var Rx = require('rx');
 var Promise = require('bluebird');
 var weather = require('./weather');
 var calendar = require('./calendar');
-var eventBus = require('../../eventBus/client');
-Rx.Observable.fromPromise(eventBus.connect())
-	.subscribe(function () {
-		eventBus.subscribe('foo');
+var eventBus = window.eb = require('../../eventBus/client');
+eventBus.connect('magicMirror.ui')
+	.then(function () {
+		var fooStream = eventBus.subscribe('foo');
+		fooStream.subscribe(onFoo);
+		setTimeout(function () {
+			//eventBus.,
+		})
 	});
+eventBus.onRequest = function (topic, params) {
+	console.log('captured an evtBus req: ', arguments);
+};
+function onFoo (msg) {
+	console.log('received a foo, ', msg);
+}
+
 
 $(document).ready(function () {
 	var $el = $('#content');
