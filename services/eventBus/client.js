@@ -1,9 +1,10 @@
-"use strict"
+"use strict";
 /**
  * Created by Karl on 6/21/2015.
  */
 let Rx = require('rx');
 let WebSocket = require('ws');
+let _ = require('lodash');
 
 let config = require('../../config.json');
 const PORT = config.ports.eventBus;
@@ -12,15 +13,6 @@ let eventSource = new Rx.Subject();
 let messageId = 0;
 let sock;
 
-eventSource.filter(function (evt) {
-		return (evt.method === 'request');
-	})
-	.subscribe(function (request) {
-		console.log('req: ', request);
-		if (typeof module.exports.onRequest === 'function') {
-			module.exports.onRequest(request.data.topic, request.data.params);
-		}
-	});
 
 function connect (endpointId) {
 	return new Promise(function (resolve, reject) {
@@ -29,6 +21,7 @@ function connect (endpointId) {
 			//connected
 			resolve();
 		}));
+		sock.endpointId = endpointId;
 		sock.subscribe(Rx.Observer.create(
 			function (evt) {
 				//try json parsing the event, should always work
@@ -128,8 +121,7 @@ function request (endpointId, topic, params) {
 			if (response.error) {
 				throw new Error(response.error);
 			}
-			//TODO - handle the
-			console.log('received response', response);
+			return response.data;
 		});
 }
 
@@ -155,9 +147,35 @@ function sendMessage (topic, message, to) {
  * @param {object} msg - Packet to send over the socket, format should correspond to something the server knows how to interpret
  */
 function sendSocketMessage(msg) {
+	_.merge(msg, {
+		'from' : sock.endpointId
+	});
 	sock.onNext(JSON.stringify(msg))
 }
 
+//listen for requests on the socket
+//requests are handled
+var requestStream = eventSource
+	.filter(function (evt) {
+		return (evt.method === 'request');
+	})
+	.map(function (request) {
+		console.log('req: ', request);
+		return {
+			'topic' : request.data.topic,
+			'params' : request.data.params,
+			'respond' :respond.bind(null, request.from, request.id)
+		};
+	});
+
+function respond (to, id, params) {
+	sendSocketMessage({
+		'method' : 'request.response',
+		'to' : to,
+		'id' : id,
+		'data' : params
+	});
+}
 
 
 
@@ -166,6 +184,7 @@ module.exports = {
 	'subscribe': subscribe,
 	'sendMessage': sendMessage,
 	'request': request,
+	'requests' : requestStream
 };
 
 
@@ -250,4 +269,4 @@ function fromWebsocket(url, protocol, openObserver, closingObserver) {
 	);
 
 	return Rx.Subject.create(observer, observable);
-};
+}

@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 let config = require('../../config.json');
 const PORT = config.ports.eventBus;
 let endpoints = {};
@@ -106,7 +106,7 @@ wss.on('connection', function (url, qs, ws) {
 				'topic' : msg.data.topic,
 				'contents' : msg.data.contents
 			});
-		}))
+		}));
 	//route request messages to the specified endpoint and subscribe to a 'response'
 	//requests can have accept only one response
 	let requestSubscription = socketMessages
@@ -125,12 +125,14 @@ wss.on('connection', function (url, qs, ws) {
 			//responding client should emit {'method' : 'request.response', 'to' : from, 'id' : id} to respond
 			let responseSubscription = '';
 			//find the target endpoint
-			let endpointId = msg.to;
-			let ws = endpoints[endpointId];
+			let to = msg.to;
+			let ws = endpoints[to];
 			if (ws) {
 				//send the request to the endpoint
 				ws.send(JSON.stringify({
 					'method' : 'request',
+					'id' : msg.id,
+					'from' : endpointId,
 					'data' : {
 						'topic': msg.data.topic,
 						'params': msg.data.params
@@ -143,10 +145,11 @@ wss.on('connection', function (url, qs, ws) {
 		}));
 	let responseSubscription = socketMessages
 		.filter(function (msg) {
-			return (msg.method === 'response');
+			return (msg.method === 'request.response');
 		})
 		.subscribe(Rx.Observer.create(function (msg) {
-
+			ws.send(JSON.stringify(msg));
 		}));
 
 }.bind(null, url, querystring));
+

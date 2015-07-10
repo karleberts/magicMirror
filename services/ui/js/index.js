@@ -14,9 +14,10 @@ eventBus.connect('magicMirror.ui')
 			//eventBus.,
 		})
 	});
-eventBus.onRequest = function (topic, params) {
+eventBus.requests.subscribe(function ({topic, params, respond}) {
 	console.log('captured an evtBus req: ', arguments);
-};
+	console.log(topic);
+});
 function onFoo (msg) {
 	console.log('received a foo, ', msg);
 }
