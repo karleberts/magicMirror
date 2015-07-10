@@ -36,6 +36,7 @@ wss.on('connection', function (url, qs, ws) {
 			return JSON.parse(msg);
 		});
 	let subscriptions = [];
+
 	//clean up on ws disconnect
 	Rx.Observable.fromEvent(ws, 'close')
 		.subscribe(Rx.Observer.create(function () {
@@ -43,12 +44,12 @@ wss.on('connection', function (url, qs, ws) {
 			subscriptions.forEach(function (sub) {
 				sub.dispose();
 			});
-			subscriberSubscription.dispose();
-			messageSubscription.dispose();
 		}));
 
-	//handle 'subscribe' messages
-	//e.g. {method: 'subscribe', data: {topic: 'foo'}}
+	/**
+	 * handle 'subscribe' messages
+	 * e.g. {method: 'subscribe', data: {topic: 'foo'}}
+	 */
 	let subscriptionObserver = Rx.Observer
 		.create(function (subscriptionRequest) {
 			let messageSubscription = messageStream
@@ -75,7 +76,13 @@ wss.on('connection', function (url, qs, ws) {
 				));
 			subscriptions.push(messageSubscription);
 		});
-	let subscriberSubscription = socketMessages
+
+	/**
+	 * Handle subscription requests
+	 * Notifies the subscriber of the subscription reception and
+	 * subscribes to 'messageStream' events with the specified topic
+	 */
+	socketMessages
 		.filter(function (msg) {
 			return (msg.method === 'subscribe');
 		})
@@ -93,8 +100,10 @@ wss.on('connection', function (url, qs, ws) {
 		})
 		.subscribe(subscriptionObserver);
 
-	//rebroadcast regular messages to all subscribed parties
-	//e.g. {method: 'message', data: {message: {foo: 'bar}}}
+	/**
+	 * rebroadcast regular messages to all subscribed parties
+	 * e.g. {method: 'message', data: {message: {foo: 'bar}}}
+	 */
 	let messageSubscription = socketMessages
 		.filter(function (msg) {
 			return (msg.method === 'message');
@@ -107,8 +116,11 @@ wss.on('connection', function (url, qs, ws) {
 				'contents' : msg.data.contents
 			});
 		}));
-	//route request messages to the specified endpoint and subscribe to a 'response'
-	//requests can have accept only one response
+
+	/**
+	 * route request messages to the specified endpoint and subscribe to a 'response'
+	 * requests can have accept only one response
+	 */
 	let requestSubscription = socketMessages
 		.filter(function (msg) {
 			return (msg.method === 'request');
@@ -143,6 +155,10 @@ wss.on('connection', function (url, qs, ws) {
 			}
 
 		}));
+
+	/**
+	 * Route request.response messages
+	 */
 	let responseSubscription = socketMessages
 		.filter(function (msg) {
 			return (msg.method === 'request.response');
@@ -152,4 +168,3 @@ wss.on('connection', function (url, qs, ws) {
 		}));
 
 }.bind(null, url, querystring));
-

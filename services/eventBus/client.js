@@ -13,7 +13,11 @@ let eventSource = new Rx.Subject();
 let messageId = 0;
 let sock;
 
-
+/**
+ * Connect to the server using the specified endpoint id
+ * @param {string} endpointId
+ * @returns {Promise|any}
+ */
 function connect (endpointId) {
 	return new Promise(function (resolve, reject) {
 		let url = getUrl(endpointId);
@@ -36,12 +40,25 @@ function connect (endpointId) {
 		));
 	});
 }
+
+/**
+ * Get the full server address given an endpoint id
+ * @param endpointId
+ * @returns {*}
+ */
 function getUrl (endpointId) {
 	endpointId = encodeURIComponent(endpointId);
 	return `${URL}?endpointId=${endpointId}`;
 }
 
 let streams = {};
+/**
+ * Returns the Observable  sequence for socket messages w/ the given method and topic
+ * Will create and cache a sequence if one does not exist
+ * @param {string} method - Socket message method type (e.g. 'subscribe', 'message')
+ * @param {string} topic - namespace for message (e.g. 'faceDetect.detected', 'ui.active')
+ * @returns {Rx.Observable}
+ */
 function getEventStream(method, topic) {
 	if (!sock) {
 		throw new Error('no socket defined');
@@ -58,6 +75,7 @@ function getEventStream(method, topic) {
 	}
 	return streams[method][topic];
 }
+
 /**
  * Send a subscription request for a message topic
  * @param {string} topic - Message topic to subscribe to
@@ -83,6 +101,7 @@ function subscribe(topic) {
 			return getEventStream('message', topic);
 		})
 }
+
 /**
  * Send a request to a specified endpoint
  * @param {string} endpointId - Request recipient's endpoint id (e.g. magicMirror.ui)
@@ -92,7 +111,6 @@ function subscribe(topic) {
  */
 function request (endpointId, topic, params) {
 	let id = messageId++;
-	//let
 	sendSocketMessage({
 		'to' : endpointId,
 		'method': 'request',
@@ -153,21 +171,29 @@ function sendSocketMessage(msg) {
 	sock.onNext(JSON.stringify(msg))
 }
 
-//listen for requests on the socket
-//requests are handled
-var requestStream = eventSource
+/**
+ * listen for requests on the socket
+ * Exposed as exports.requests
+ */
+let requestStream = eventSource
 	.filter(function (evt) {
 		return (evt.method === 'request');
 	})
 	.map(function (request) {
-		console.log('req: ', request);
 		return {
 			'topic' : request.data.topic,
 			'params' : request.data.params,
-			'respond' :respond.bind(null, request.from, request.id)
+			'respond' : _.once(respond.bind(null, request.from, request.id))
 		};
 	});
 
+/**
+ * Added as a method to request notifications with bound params to allow observer methods to
+ * Send a reply to a request.
+ * @param to - target endpoint id (should be the endpoint that sent the original request)
+ * @param id - id of the original request
+ * @param [params] - Response data
+ */
 function respond (to, id, params) {
 	sendSocketMessage({
 		'method' : 'request.response',
@@ -176,8 +202,6 @@ function respond (to, id, params) {
 		'data' : params
 	});
 }
-
-
 
 module.exports = {
 	'connect': connect,
