@@ -2,14 +2,14 @@
 /**
  * Created by Karl on 6/21/2015.
  */
-let Rx = require('rx');
-let WebSocket = require('ws');
-let _ = require('lodash');
+const Rx = require('rx');
+const WebSocket = require('ws');
+const _ = require('lodash');
 
-let config = require('../../config.json');
+const config = require('../../config.json');
 const PORT = config.ports.eventBus;
 const URL = 'ws://localhost:' + PORT + '/';
-let eventSource = new Rx.Subject();
+const eventSource = new Rx.Subject();
 let messageId = 0;
 let sock;
 
@@ -19,22 +19,22 @@ let sock;
  * @returns {Promise|any}
  */
 function connect (endpointId) {
-	return new Promise(function (resolve, reject) {
+	return new Promise((resolve, reject) => {
 		let url = getUrl(endpointId);
-		sock = fromWebsocket(url, null, Rx.Observer.create(function () {
+		sock = fromWebsocket(url, null, Rx.Observer.create(() => {
 			//connected
 			resolve();
 		}));
 		sock.endpointId = endpointId;
 		sock.subscribe(Rx.Observer.create(
-			function (evt) {
+			(evt) => {
 				//try json parsing the event, should always work
 				eventSource.onNext(JSON.parse(evt.data));
 			},
-			function (err) {
+			(err) => {
 				//reconnect on error
 			},
-			function () {
+			() => {
 				//reconnect on disconnect
 			}
 		));
@@ -48,7 +48,8 @@ function connect (endpointId) {
  */
 function getUrl (endpointId) {
 	endpointId = encodeURIComponent(endpointId);
-	return `${URL}?endpointId=${endpointId}`;
+	return URL + '?endpointId=' + endpointId;
+	//return `${URL}?endpointId=${endpointId}`;
 }
 
 let streams = {};
@@ -68,10 +69,10 @@ function getEventStream(method, topic) {
 	}
 	if (!streams[method][topic]) {
 		streams[method][topic] = eventSource
-			.filter(function (evt) {
-				return ((evt.method === method) &&
-						(!topic || (evt.topic === topic)));
-			});
+			.filter((evt) => (
+				evt.method === method &&
+				(!topic || evt.topic === topic))
+			);
 	}
 	return streams[method][topic];
 }
@@ -91,15 +92,13 @@ function subscribe(topic) {
 		}
 	});
 	return eventSource
-		.filter(function (evt) {
-			return (evt.method === 'subscription.response' &&
-					evt.id === id);
-		})
+		.filter((evt) => (
+			evt.method === 'subscription.response' &&
+			evt.id === id
+		))
 		.take(1)
 		//.timeout(10000)
-		.flatMap(function () {
-			return getEventStream('message', topic);
-		})
+		.flatMap(() => getEventStream('message', topic));
 }
 
 /**
@@ -121,21 +120,20 @@ function request (endpointId, topic, params) {
 		}
 	});
 	return eventSource
-		.filter(function (evt) {
-			return (evt.method === 'request.received' &&
-					evt.id === id);
-		})
+		.filter((evt) => (
+			evt.method === 'request.received' &&
+			evt.id === id
+		))
 		.take(1)
-		.flatMap(function () {
-			return eventSource
-				.filter(function (evt) {
-					return (evt.method === 'request.response' &&
-							evt.from === endpointId &&
-							evt.id === id);
-				});
-		})
+		.flatMap(() => eventSource
+			.filter((evt) => (
+				evt.method === 'request.response' &&
+				evt.from === endpointId &&
+				evt.id === id
+			))
+		)
 		.take(1)
-		.map(function (response) {
+		.map((response) => {
 			if (response.error) {
 				throw new Error(response.error);
 			}
@@ -176,16 +174,12 @@ function sendSocketMessage(msg) {
  * Exposed as exports.requests
  */
 let requestStream = eventSource
-	.filter(function (evt) {
-		return (evt.method === 'request');
-	})
-	.map(function (request) {
-		return {
-			'topic' : request.data.topic,
-			'params' : request.data.params,
-			'respond' : _.once(respond.bind(null, request.from, request.id))
-		};
-	});
+	.filter((evt) => evt.method === 'request')
+	.map((request) => ({
+		'topic' : request.data.topic,
+		'params' : request.data.params,
+		'respond' : _.once(respond.bind(null, request.from, request.id))
+	}));
 
 /**
  * Added as a method to request notifications with bound params to allow observer methods to

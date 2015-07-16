@@ -1,27 +1,27 @@
 "use strict";
-let config = require('../../config.json');
+const config = require('../../config.json');
 const PORT = config.ports.eventBus;
 let endpoints = {};
 
-let memwatch = require('memwatch-next');
+const memwatch = require('memwatch-next');
 memwatch.on('leak', function(info) {
 	console.log(info);
 });
 
-let url = require('url');
-let querystring = require('querystring');
-let Rx = require('rx');
+const url = require('url');
+const querystring = require('querystring');
+const Rx = require('rx');
 //stream of 'message' type messages
-let messageStream = new Rx.Subject();
+const messageStream = new Rx.Subject();
 //stream of responses to request messages
-let responseStream = new Rx.Subject();
+const responseStream = new Rx.Subject();
 
-let WebSocketServer = require('ws').Server;
-let wss = new WebSocketServer({'port' : PORT});
+const WebSocketServer = require('ws').Server;
+const wss = new WebSocketServer({'port' : PORT});
 
-wss.on('connection', function (url, qs, ws) {
+wss.on('connection', (ws) => {
 	let query = url.parse(ws.upgradeReq.url).query || '';
-	query = qs.parse(query);
+	query = querystring.parse(query);
 	if (!query ||
 			!query.endpointId ||
 			endpoints[query.endpointId]) {
@@ -32,48 +32,36 @@ wss.on('connection', function (url, qs, ws) {
 	endpoints[query.endpointId] = ws;
 	let endpointId = query.endpointId;
 	let socketMessages = Rx.Observable.fromEvent(ws, 'message')
-		.map(function (msg) {
-			return JSON.parse(msg);
-		});
+		.map((msg) => JSON.parse(msg));
 	let subscriptions = [];
 
 	//clean up on ws disconnect
 	Rx.Observable.fromEvent(ws, 'close')
-		.subscribe(Rx.Observer.create(function () {
+		.subscribe(Rx.Observer.create(() => {
 			delete endpoints[query.endpointId];
-			subscriptions.forEach(function (sub) {
-				sub.dispose();
-			});
+			subscriptions.forEach((sub) => sub.dispose());
 		}));
 
 	/**
 	 * handle 'subscribe' messages
 	 * e.g. {method: 'subscribe', data: {topic: 'foo'}}
 	 */
-	let subscriptionObserver = Rx.Observer
-		.create(function (subscriptionRequest) {
+	let subscriptionObserver = Rx.Observer.create((subscriptionRequest) => {
 			let messageSubscription = messageStream
-				.filter(function (message) {
-					//TODO- filter my own messages
-					return (message.topic === subscriptionRequest.topic);
-					return ((message.from !== ws) &&
-							(message.topic === subscriptionRequest.topic));
-				})
-				.subscribe(Rx.Observer.create(
-					function (message) {
-						if (message.to && message.to !== endpointId) {
-							//message is intended for another endpoint
-							return;
+				.filter((message) => (
+					//message.from !== ws &&
+					(!message.to || message.to === endpointId) &&
+					message.topic === subscriptionRequest.topic
+				))
+				.subscribe(Rx.Observer.create((message) => {
+					ws.send(JSON.stringify({
+						'method' : 'message',
+						'data' : {
+							'topic': message.topic,
+							'contents': message.contents
 						}
-						ws.send(JSON.stringify({
-							'method' : 'message',
-							'data' : {
-								'topic': message.topic,
-								'contents': message.contents
-							}
-						}));
-					}
-				));
+					}));
+				}));
 			subscriptions.push(messageSubscription);
 		});
 
@@ -83,16 +71,12 @@ wss.on('connection', function (url, qs, ws) {
 	 * subscribes to 'messageStream' events with the specified topic
 	 */
 	socketMessages
-		.filter(function (msg) {
-			return (msg.method === 'subscribe');
-		})
-		.map(function (evt) {
-			return {
-				'topic' : evt.data.topic,
-				'id' : evt.id
-			}
-		})
-		.do(function (subscriptionRequest) {
+		.filter((msg) => msg.method === 'subscribe')
+		.map((evt)  => ({
+			'topic' : evt.data.topic,
+			'id' : evt.id
+		}))
+		.do((subscriptionRequest) => {
 			ws.send(JSON.stringify({
 				'method' : 'subscription.response',
 				'id' : subscriptionRequest.id
@@ -105,9 +89,7 @@ wss.on('connection', function (url, qs, ws) {
 	 * e.g. {method: 'message', data: {message: {foo: 'bar}}}
 	 */
 	let messageSubscription = socketMessages
-		.filter(function (msg) {
-			return (msg.method === 'message');
-		})
+		.filter((msg) => msg.method === 'message')
 		.subscribe(Rx.Observer.create(function (msg) {
 			messageStream.onNext({
 				'from' : ws,
@@ -122,16 +104,14 @@ wss.on('connection', function (url, qs, ws) {
 	 * requests can have accept only one response
 	 */
 	let requestSubscription = socketMessages
-		.filter(function (msg) {
-			return (msg.method === 'request');
-		})
-		.do(function (request) {
+		.filter((msg) => msg.method === 'request')
+		.do((request) => {
 			ws.send(JSON.stringify({
 				'method' : 'request.received',
 				'id' : request.id
 			}))
 		})
-		.subscribe(Rx.Observer.create(function (msg) {
+		.subscribe(Rx.Observer.create((msg) => {
 			//set up a response listener
 			//TODO - partially apply the 'from' arg as the current endpoint id
 			//responding client should emit {'method' : 'request.response', 'to' : from, 'id' : id} to respond
@@ -160,11 +140,9 @@ wss.on('connection', function (url, qs, ws) {
 	 * Route request.response messages
 	 */
 	let responseSubscription = socketMessages
-		.filter(function (msg) {
-			return (msg.method === 'request.response');
-		})
-		.subscribe(Rx.Observer.create(function (msg) {
+		.filter((msg) => msg.method === 'request.response')
+		.subscribe(Rx.Observer.create((msg) => {
 			ws.send(JSON.stringify(msg));
 		}));
 
-}.bind(null, url, querystring));
+});

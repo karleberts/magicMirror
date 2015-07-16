@@ -1,21 +1,21 @@
 "use strict";
-var Promise = require('bluebird');
-var $ = require('jquery');
-var moment = require('moment');
-var querystring = require('querystring');
-var Handlebars = require('hbsfy/runtime');
-Handlebars.registerHelper('debug', function () {
+const Promise = require('bluebird');
+const $ = require('jquery');
+const moment = require('moment');
+const querystring = require('querystring');
+const Handlebars = require('hbsfy/runtime');
+Handlebars.registerHelper('debug', () => {
 	debugger;
 });
 
 
-var template = require('../tmpl/weather.hbs');
-var config = gData.config;
+const template = require('../tmpl/weather.hbs');
+const config = gData.config;
 //TODO- create an 'error' service that sends me emails/texts (debounced 1/hr) on any kind of error -
 //should listen to 'error' events on the bus...
 //TODO- any api or other errors should raise errors on the bus
 
-var weather,
+let weather,
 	fetched,
 	$container;
 
@@ -28,8 +28,8 @@ function request () {
 	//var forecastUrl = 'https://api.forecast.io/forecast/' + config.apiKeys.forecastIo;
 	//forecastUrl += '/' + config.weather.lat + ',' + config.weather.long;
 	//!!for now forecast.io reqs are routed through a node proxy b/c forecast.io does not allow CORS
-	var forecastUrl = '/forecastIoProxy';
-	var now = moment();
+	let forecastUrl = '/forecastIoProxy';
+	let now = moment();
 	if (fetched &&
 			(fetched.isAfter(now.subtract(30, 'minutes'))) &&
 			(Math.abs(fetched.diff(now, 'days')) === 0)){
@@ -40,13 +40,13 @@ function request () {
 			'url'		: forecastUrl,
 			'method'	: 'get'
 		}))
-			.then(function (response) {
-				var forecast = JSON.parse(response);
-				var currently = forecast.currently;
-				var today = forecast.daily.data[0];
+			.then((response) => {
+				let forecast = JSON.parse(response);
+				let currently = forecast.currently;
+				let today = forecast.daily.data[0];
 				fetched = moment();
-				var currentTemp = Math.round(currently.temperature);
-				var moonPhaseIconClass = moonPhases[Math.round(today.moonPhase / (1/28))];
+				let currentTemp = Math.round(currently.temperature);
+				let moonPhaseIconClass = moonPhases[Math.round(today.moonPhase / (1/28))];
 				weather = {
 					'sunrise'				: moment.unix(today.sunriseTime),
 					'sunset'				: moment.unix(today.sunsetTime),
@@ -57,7 +57,7 @@ function request () {
 					'minTemp'				: Math.round(today.temperatureMin),
 					'upcoming'				: [],
 				};
-				for (var i = 1; i < 4; i++) {
+				for (let i = 1; i < 4; i++) {
 					weather.upcoming.push({
 						'date'	: moment().add(i, 'days').format('M/D'),
 						'temp'	: Math.round(forecast.daily.data[i].temperatureMax),
@@ -66,7 +66,7 @@ function request () {
 				}
 				return weather;
 			})
-			.catch(function (err) {
+			.catch((err) => {
 				//TODO- raise the err w/ the error service over the bus
 				//for now I'm just gonna rethrow
 				throw err;
@@ -90,20 +90,20 @@ function render (weather) {
 function init ($el) {
 	$container = $el;
 	return request()
-		.then(function (result) {
+		.then((result) => {
 			$container.append(render(result));
 		});
 }
 
 function refresh () {
 	return request()
-		.then(function (result) {
+		.then((result) => {
 			$container.append(render(result));
 		});
 }
 function show () {
 	if (!$container.is(':visible')) {
-		return new Promise(function (resolve, reject) {
+		return new Promise((resolve, reject) => {
 			$container.fadeIn({
 				'complete'	: resolve
 			});
@@ -114,8 +114,8 @@ function show () {
 }
 
 function processWeatherId () {
-	var id = weather.id;
-	var desc;
+	let id = weather.id;
+	let desc;
 	if (/^2..$/.test(id)) {
 		desc = 'thunderstorm';
 	}
@@ -220,16 +220,12 @@ var moonPhases = [
 ];
 
 function toTitleCase (str) {
-	return str.replace(/\w\S*/g, function (txt) {
-		return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-	});
+	return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 }
 
 module.exports = {
 	'init'		: init,
 	'request'	: request,
 	'render'	: render,
-	'get'		: function () {
-		return weather;
-	}
+	'get'		: () => weather
 };

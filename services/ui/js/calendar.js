@@ -1,15 +1,15 @@
 "use strict";
-var Promise = require('bluebird');
-var $ = require('jquery');
-var moment = require('moment');
-var config = gData.config;
+const Promise = require('bluebird');
+const $ = require('jquery');
+const moment = require('moment');
+const config = gData.config;
 
-var tmpl = require('../tmpl/calendar.hbs');
+const tmpl = require('../tmpl/calendar.hbs');
 
-var CLIENT_ID = config.apiKeys.google.clientId;
-var SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
-var intervals = {};
-var $container;
+const CLIENT_ID = config.apiKeys.google.clientId;
+const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
+let intervals = {};
+let $container;
 
 
 function init ($el) {
@@ -21,8 +21,8 @@ function init ($el) {
 
 function refreshEvents () {
 	getEvents()
-		.then(function (events) {
-			var $eventsList = $('<div>')
+		.then((events) => {
+			let $eventsList = $('<div>')
 				.append(render(events))
 				.find('.events')
 				.detach();
@@ -37,20 +37,20 @@ function getEvents () {
 		'url'		: '/calendar',
 		'method'	: 'get'
 	}))
-		.then(function (response) {
-			var gCal = response[0];
+		.then((response) => {
+			let gCal = response[0];
 			return gCal.items;
 		})
-		.catch(function (err) {
+		.catch((err) => {
 			console.error(err);
 		});
 }
 
 function setupUpdateIntervals () {
-	Object.keys(intervals).forEach(function (i) {
+	Object.keys(intervals).forEach((i) => {
 		clearInterval(i);
 	});
-	intervals.updateDateTime = setInterval(function () {
+	intervals.updateDateTime = setInterval(() => {
 		$container.find('.date').text(moment().format('dddd MMMM Do'));
 		$container.find('.time').text(moment().format('h:mm'));
 	}, 500);
@@ -58,10 +58,10 @@ function setupUpdateIntervals () {
 }
 
 function render (events) {
-	var context = {};
-	var list = events || [];
-	context.events = list.reduce(function (evts, evt) {
-		var startMoment = moment(evt.start.dateTime);
+	let context = {};
+	let list = events || [];
+	context.events = list.reduce((evts, evt) => {
+		let startMoment = moment(evt.start.dateTime);
 		evts.push({
 			'date'		: startMoment.format('M/D'),
 			'time'		: startMoment.format('h:mma'),
