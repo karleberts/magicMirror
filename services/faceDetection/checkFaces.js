@@ -1,18 +1,24 @@
 "use strict";
 
-var Promise = require('bluebird');
-var cp = require('child_process');
+const cp = require('child_process');
+const Promise = require('bluebird');
+const Rx = require('rx');
 
+const eventBus = require('../eventBus/client');
+
+const config = require('../../config.json');
 //TODO- make ramdisk on startup...or verify tor whatev
-var CAPTURE_PATH = '/Volumes/RAM Disk';
+const CAPTURE_PATH = '/Volumes/RAM Disk/snapshot.jpg';
+const SLEEP_AFTER_FACE = config.faceDetect.sleep_after_face * 1000;
+const FACE_CHECK_INTVL = config.faceDetect.face_check_interval * 1000;
 function NoFaces () {
 }
 NoFaces.prototype = Error.prototype;
 
 function captureImage (cb) {
-	return new Promise(function (resolve, reject) {
-		var imageCap = cp.spawn('imagesnap', ['-w', 1, CAPTURE_PATH]);
-		imageCap.on('close', function (code, signal) {
+	return new Promise((resolve, reject) => {
+		let imageCap = cp.spawn('imagesnap', ['-w', 1.5, CAPTURE_PATH]);
+		imageCap.on('close', (code, signal) => {
 			if (code === 0) {
 				resolve();
 			} else {
@@ -23,9 +29,9 @@ function captureImage (cb) {
 }
 
 function findFaces () {
-	return new Promise(function (resolve, reject) {
-		var faceDetect = cp.spawn('python', ['face_detect.py', CAPTURE_PATH, 'haarcascade_frontalface_default.xml']);
-		faceDetect.on('close', function (code, signal) {
+	return new Promise((resolve, reject) => {
+		let faceDetect = cp.spawn('python', ['face_detect.py', CAPTURE_PATH, 'haarcascade_frontalface_default.xml']);
+		faceDetect.on('close', (code, signal) => {
 			if (code === 0) {
 				resolve();
 			} else {
@@ -35,21 +41,25 @@ function findFaces () {
 	});
 }
 
-function checkForFaces () {
+function start () {
 	captureImage()
-	.then(findFaces)
-	.then(function () {
-		console.log('found a face!!');
-	})
-	.catch(function (err) {
-		if (err instanceof NoFaces) {
-			console.log('did not find a face :(');
-		} else {
-			console.log('error checking for faces: ', err);
-		}
-	})
-	.finally(function () {
-		setTimeout(checkForFaces, 5000);
-	});
+		.then(findFaces)
+		.then(() => {
+			eventBus.sendMessage('faceDetect.result', true);
+			//if a face was found we can sleep for a while
+			//TODO - make this something like 2 minutes
+			setTimeout(start, SLEEP_AFTER_FACE);
+		})
+		.catch((err) => {
+			if (err instanceof NoFaces) {
+				console.log('did not find a face :(');
+			} else {
+				console.log('error checking for faces: ', err);
+			}
+			//no face was found, check again in 5 secs
+			eventBus.sendMessage('faceDetect.result', false);
+			setTimeout(start, FACE_CHECK_INTVL);
+		});
 }
-checkForFaces();
+eventBus.connect('magicMirror.faceDetect')
+	.then(start);

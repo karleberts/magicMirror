@@ -21,9 +21,11 @@
   "dependencies": {
     "express": "^4.12.3",
     "googleapis": "^2.0.4",
+    "lodash": "^3.10.0",
     "moment": "^2.10.3",
     "request": "^2.55.0",
     "request-promise": "^0.4.2",
-    "rx": "^2.5.3"
+    "rx": "^2.5.3",
+    "ws": "^0.7.2"
   }
 }
