@@ -1,14 +1,16 @@
 "use strict";
 var fs = require('fs');
 var child_process = require('child_process');
+var webpack = require('webpack');
+
 
 var vars = require('./vars.json');
 //list of all modules we can build
 var KEYS = vars.keys;
 //make sure all the args are known keys
-for (var i = 3; i < process.argv.length; i++) {
-	if (!KEYS[process.argv[i]]) {
-		throw "Unknown key: " + process.argv[i];
+for (let arg of args) {
+	if (!KEYS[arg] && !/^\-/.test(arg)) {
+		throw "Unknown key: " + arg;
 	}
 }
 

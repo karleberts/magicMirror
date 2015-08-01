@@ -4,7 +4,7 @@
  */
 const Rx = require('rx');
 const WebSocket = require('ws');
-const _ = require('lodash');
+const R = require('ramda');
 
 const config = require('../../config.json');
 const PORT = config.ports.eventBus;
@@ -52,31 +52,6 @@ function getUrl (endpointId) {
 	//return `${URL}?endpointId=${endpointId}`;
 }
 
-let streams = {};
-/**
- * Returns the Observable  sequence for socket messages w/ the given method and topic
- * Will create and cache a sequence if one does not exist
- * @param {string} method - Socket message method type (e.g. 'subscribe', 'message')
- * @param {string} topic - namespace for message (e.g. 'faceDetect.detected', 'ui.active')
- * @returns {Rx.Observable}
- */
-function getEventStream(method, topic) {
-	if (!sock) {
-		throw new Error('no socket defined');
-	}
-	if (!streams[method]) {
-		streams[method] = {};
-	}
-	if (!streams[method][topic]) {
-		streams[method][topic] = eventSource
-			.filter((evt) => (
-				evt.method === method &&
-				(!topic || evt.topic === topic))
-			);
-	}
-	return streams[method][topic];
-}
-
 /**
  * Send a subscription request for a message topic
  * @param {string} topic - Message topic to subscribe to
@@ -98,7 +73,29 @@ function subscribe(topic) {
 		))
 		.take(1)
 		//.timeout(10000)
-		.flatMap(() => getEventStream('message', topic));
+		.flatMap(() => {
+			return eventSource
+				.filter((evt) => (evt.method === 'message' &&
+					(!topic || evt.topic === topic)
+				))
+		})
+}
+
+function unsubscribe (topic) {
+	let id = messageId++;
+	sendSocketMessage({
+		'method': 'unsubscribe',
+		'id': id,
+		'data': {
+			'topic': topic
+		}
+	});
+	return eventSource
+		.filter((evt) => (
+			evt.method === 'unsubscribe.response' &&
+			evt.id === id
+		))
+		.take(1);
 }
 
 /**
@@ -163,7 +160,7 @@ function sendMessage (topic, message, to) {
  * @param {object} msg - Packet to send over the socket, format should correspond to something the server knows how to interpret
  */
 function sendSocketMessage(msg) {
-	_.merge(msg, {
+	msg = R.merge(msg, {
 		'from' : sock.endpointId
 	});
 	sock.onNext(JSON.stringify(msg))
@@ -174,15 +171,15 @@ function sendSocketMessage(msg) {
  * Exposed as exports.requests
  */
 let requestStream = eventSource
-	.filter((evt) => evt.method === 'request')
+	.filter((evt) => (evt.method === 'request'))
 	.map((request) => ({
 		'topic' : request.data.topic,
 		'params' : request.data.params,
-		'respond' : _.once(respond.bind(null, request.from, request.id))
+		'respond' : R.once(R.partial(respond, request.from, request.id))
 	}));
 
 /**
- * Added as a method to request notifications with bound params to allow observer methods to
+ * Added to request notifications as a method with bound params to allow observer methods to
  * Send a reply to a request.
  * @param to - target endpoint id (should be the endpoint that sent the original request)
  * @param id - id of the original request
@@ -200,6 +197,7 @@ function respond (to, id, params) {
 module.exports = {
 	'connect': connect,
 	'subscribe': subscribe,
+	'unsubscribe' : unsubscribe,
 	'sendMessage': sendMessage,
 	'request': request,
 	'requests' : requestStream
