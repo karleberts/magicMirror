@@ -2,9 +2,11 @@
 
 var $ = require('jquery');
 var Rx = require('rx');
+var React = require('react');
 var Promise = require('bluebird');
-var weather = require('./weather');
-var calendar = require('./calendar');
+var Weather = require('./weather');
+var Calendar = require('./calendar');
+//TODO- global ref
 var eventBus = window.eb = require('../../eventBus/client');
 eventBus.connect('magicMirror.ui')
 	.then(() => {
@@ -20,17 +22,22 @@ function onFoo (msg) {
 }
 
 
+
 $(document).ready(() => {
-	var $el = $('#content');
-	var $weatherContainer = $('<div>')
-		.attr('id', 'weatherContainer')
-		.appendTo($el);
-	var $calendarContainer = $('<div>')
-		.attr('id', 'calendarContainer')
-		.appendTo($el);
-	
-	Promise.all([
-		weather.init($weatherContainer),
-		calendar.init($calendarContainer)
-	]);
+	var container = document.getElementById('content');
+	//React.render(<Weather></Weather>, container);
+	React.render(<Calendar></Calendar>, container);
+	//var $el = $('#content');
+	//var $weatherContainer = $('<div>')
+	//	.attr('id', 'weatherContainer')
+	//	.appendTo($el);
+	//var $calendarContainer = $('<div>')
+	//	.attr('id', 'calendarContainer')
+	//	.appendTo($el);
+	//
+	//Promise.all([
+	//	weather.init($weatherContainer),
+	//	calendar.init($calendarContainer)
+	//]);
+
 });

@@ -85,8 +85,6 @@ Rx.Observable.fromEvent(wss, 'connection')
 		let socketMessages = Rx.Observable.fromEvent(ws, 'message')
 			.map((msg) => JSON.parse(msg));
 
-		let subscriptions =
-
 		/**
 		 * Handle subscription requests
 		 * e.g. {method: 'subscribe', data: {topic: 'foo'}}

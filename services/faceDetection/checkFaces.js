@@ -1,6 +1,7 @@
 "use strict";
 
 const cp = require('child_process');
+var path = require('path');
 const Promise = require('bluebird');
 const Rx = require('rx');
 
@@ -30,7 +31,11 @@ function captureImage (cb) {
 
 function findFaces () {
 	return new Promise((resolve, reject) => {
-		let faceDetect = cp.spawn('python', ['face_detect.py', CAPTURE_PATH, 'haarcascade_frontalface_default.xml']);
+		let faceDetect = cp.spawn('python', [
+			__dirname + path.sep + 'face_detect.py',
+			CAPTURE_PATH,
+			__dirname + path.sep + 'haarcascade_frontalface_default.xml'
+		]);
 		faceDetect.on('close', (code, signal) => {
 			if (code === 0) {
 				resolve();

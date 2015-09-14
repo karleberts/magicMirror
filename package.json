@@ -2,8 +2,7 @@
   "name": "magicMirror",
   "version": "1.0.0",
   "scripts": {
-    "build": "node ./scripts/build.js",
-    "watch": "node ./scripts/watch.js"
+    "build": "webpack services/ui/js/index.js services/ui/public/bundle.js"
   },
   "devDependencies": {
     "babel-core": "^5.8.19",

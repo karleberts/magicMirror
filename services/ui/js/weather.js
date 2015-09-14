@@ -1,12 +1,9 @@
 "use strict";
 const Promise = require('bluebird');
+const React = require('react');
 const $ = require('jquery');
 const moment = require('moment');
 const querystring = require('querystring');
-const Handlebars = require('hbsfy/runtime');
-Handlebars.registerHelper('debug', () => {
-	debugger;
-});
 
 
 const template = require('../tmpl/weather.hbs');
@@ -15,9 +12,17 @@ const config = gData.config;
 //should listen to 'error' events on the bus...
 //TODO- any api or other errors should raise errors on the bus
 
-let weather,
-	fetched,
-	$container;
+let weather = {
+	'sunrise' : moment(),
+	'sunset' : moment(),
+	'moonPhaseClassName' : '',
+	'currentTemp' : '?',
+	'maxTemp' : '?',
+	'minTemp' : '?',
+	'icon' : 'wi-alien',
+	'upcoming' : []
+};
+let fetched;
 
 
 /**
@@ -74,32 +79,58 @@ function request () {
 	}
 }
 
-function render (weather) {
-	return template({
-		'sunrise'		: weather.sunrise.format('h:mma'),
-		'sunset'		: weather.sunset.format('h:mma'),
-		'moonPhase'		: weather.moonPhaseClassName,
-		'currentIcon'	: weather.icon,
-		'currentTemp'	: weather.currentTemp,
-		'maxTemp'		: weather.maxTemp,
-		'minTemp'		: weather.minTemp,
-		'upcoming'		: weather.upcoming
-	});
-}
-
-function init ($el) {
-	$container = $el;
-	return request()
-		.then((result) => {
-			$container.append(render(result));
+class Weather extends React.Component {
+	constructor (props) {
+		super(props);
+		this.state = {
+			'weather' : weather
+		};
+	}
+	request () {
+		request()
+			.then((result) => {
+				this.setState({'weather' : result});
+			});
+	}
+	componentDidMount () {
+		this.request();
+	}
+	render () {
+		const weather = this.state.weather;
+		const upcoming = weather.upcoming.map((up) => {
+			return (
+				<div>
+					<i className="wi {up.icon}"></i>
+					<span className="date">{up.date}</span>
+					<span className="temp">{up.temp}<i className="wi wi-degrees"></i></span>
+				</div>
+			);
 		});
-}
-
-function refresh () {
-	return request()
-		.then((result) => {
-			$container.append(render(result));
-		});
+		return (
+			<div id="weatherContainer">
+				<div className="sun">
+					<i className="wi wi-sunrise"></i>
+					<span>{weather.sunrise.format('h:mma')}</span>
+					<i className="wi wi-sunset"></i>
+					<span>{weather.sunset.format('h:mma')}</span>
+					<i className="moonPhase wi {weather.moonPhaseClassName}"></i>
+				</div>
+				<div className="current">
+					<i className="currentIcon wi {weather.icon}"></i>
+					<div className="currentTemp">
+						{weather.currentTemp}<i className="wi wi-degrees"></i>
+					</div>
+					<div className="hilo">
+						<div>{weather.maxTemp}<i className="wi wi-degrees"></i></div>
+						<div>{weather.minTemp}<i className="wi wi-degrees"></i></div>
+					</div>
+				</div>
+				<div className="upcoming">
+					{upcoming}
+				</div>
+			</div>
+		);
+	}
 }
 function show () {
 	if (!$container.is(':visible')) {
@@ -113,49 +144,8 @@ function show () {
 	}
 }
 
-function processWeatherId () {
-	let id = weather.id;
-	let desc;
-	if (/^2..$/.test(id)) {
-		desc = 'thunderstorm';
-	}
-	if (/^3..$/.test(id)) {
-		desc = 'drizzle';
-	}
-	if (/^5..$/.test(id)) {
-		if ('500' === id) {
-			desc = 'drizzle';
-		} else if (id === '511') {
-			desc = 'freezing rain';
-		} else  {
-			desc = 'rain';
-		}
-	}
-	if (/^6..$/.test(id)) {
-		if ('600' === id) {
-			desc = 'snow shower';
-		} else if (/61[256]/.test(id) || /62[012]/.test(id)) {
-			desc = 'wintry mix';
-		} else  {
-			desc = 'snow';
-		}
-	}
-	if (/^7..$/.test(id)) {
-		desc = 'haze';
-	}
-	if (/^8..$/.test(id)) {
-		if ('800' === id) {
-			desc = 'snow shower';
-		} else if (/61[256]/.test(id) || /62[012]/.test(id)) {
-			desc = 'wintry mix';
-		} else  {
-			desc = 'cloudy';
-		}
-	}
-	return toTitleCase(desc);
-}
 
-var iconTable = {
+const iconTable = {
 	'clear-day'				: 'wi-day-sunny',
 	'clear-night'			: 'wi-night-clear',
 	'rain'					: 'wi-rain',
@@ -188,7 +178,7 @@ var iconTable = {
 	//'50n':'wi-night-alt-cloudy-windy',
 //};
 
-var moonPhases = [
+const moonPhases = [
 	'wi-moon-new',
 	'wi-moon-waxing-cresent-1',
 	'wi-moon-waxing-cresent-2',
@@ -223,9 +213,4 @@ function toTitleCase (str) {
 	return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 }
 
-module.exports = {
-	'init'		: init,
-	'request'	: request,
-	'render'	: render,
-	'get'		: () => weather
-};
+module.exports = Weather;
