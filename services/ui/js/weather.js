@@ -1,12 +1,12 @@
 "use strict";
 const Promise = require('bluebird');
+const RxReact = require('rx-react');
 const React = require('react');
+const Rx = require('rx');
 const $ = require('jquery');
 const moment = require('moment');
 const querystring = require('querystring');
 
-
-const template = require('../tmpl/weather.hbs');
 const config = gData.config;
 //TODO- create an 'error' service that sends me emails/texts (debounced 1/hr) on any kind of error -
 //should listen to 'error' events on the bus...
@@ -45,7 +45,7 @@ function request () {
 			'url'		: forecastUrl,
 			'method'	: 'get'
 		}))
-			.then((response) => {
+			.then(response => {
 				let forecast = JSON.parse(response);
 				let currently = forecast.currently;
 				let today = forecast.daily.data[0];
@@ -71,7 +71,7 @@ function request () {
 				}
 				return weather;
 			})
-			.catch((err) => {
+			.catch(err => {
 				//TODO- raise the err w/ the error service over the bus
 				//for now I'm just gonna rethrow
 				throw err;
@@ -79,25 +79,24 @@ function request () {
 	}
 }
 
-class Weather extends React.Component {
+class Weather extends RxReact.Component {
 	constructor (props) {
 		super(props);
 		this.state = {
 			'weather' : weather
 		};
 	}
-	request () {
-		request()
-			.then((result) => {
-				this.setState({'weather' : result});
-			});
+
+	getStateStream () {
+		return Rx.Observable.interval(600000)
+			.startWith(true)
+			.flatMap(() => Rx.Observable.fromPromise(request()))
+			.map(weather => ({'weather' : weather}));
 	}
-	componentDidMount () {
-		this.request();
-	}
+
 	render () {
 		const weather = this.state.weather;
-		const upcoming = weather.upcoming.map((up) => {
+		const upcoming = weather.upcoming.map(up => {
 			return (
 				<div>
 					<i className="wi {up.icon}"></i>
@@ -132,18 +131,6 @@ class Weather extends React.Component {
 		);
 	}
 }
-function show () {
-	if (!$container.is(':visible')) {
-		return new Promise((resolve, reject) => {
-			$container.fadeIn({
-				'complete'	: resolve
-			});
-		});
-	} else {
-		return Promise.resolve();
-	}
-}
-
 
 const iconTable = {
 	'clear-day'				: 'wi-day-sunny',
@@ -210,7 +197,7 @@ const moonPhases = [
 ];
 
 function toTitleCase (str) {
-	return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+	return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 }
 
 module.exports = Weather;

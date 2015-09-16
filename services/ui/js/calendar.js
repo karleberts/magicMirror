@@ -2,7 +2,9 @@
 const Promise = require('bluebird');
 const $ = require('jquery');
 const moment = require('moment');
-const React = require('react');
+const RxReact = require('rx-react');
+const React = require('react/addons');
+const ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
 const Rx = require('rx');
 const R = require('ramda');
 const config = gData.config;
@@ -18,6 +20,7 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
 function formatEvent (event) {
 	let startMoment = moment(event.start.dateTime);
 	return {
+		'id'		: event.id,
 		'date'		: startMoment.format('M/D'),
 		'time'		: startMoment.format('h:mma'),
 		'summary'	: event.summary
@@ -33,61 +36,58 @@ function getEvents () {
 		'url'		: '/calendar',
 		'method'	: 'get'
 	}))
-		.then((response) => {
+		.then(response => {
 			let gCal = response[0];
 			return gCal.items
-				.map((event) => (formatEvent(event)));
+				.map(event => formatEvent(event));
 		})
-		.catch((err) => {
+		.catch(err => {
 			console.error(err);
 		});
 }
 
-class Calendar extends React.Component {
+class Calendar extends RxReact.Component {
 	constructor (props) {
 		super(props);
 
 		let m = moment();
 		this.state = {
-			'date'		: m.format('dddd MMMM Do'),
-			'time'		: m.format('h:mm'),
+			'dateTime'	: {
+				'date'		: m.format('dddd MMMM Do'),
+				'time'		: m.format('h:mm'),
+			},
 			'events'	: []
 		};
-		this.dateTimeSequence = Rx.Observable.interval(500)
-			.startWith(true);
-		//TODO- 5min? should also use a webhook for instant updates plz
-		//merge seq w/ webhook update seq or something
-		this.eventSequence = Rx.Observable.interval(300000)
-			.startWith(true)
-			.flatMap(getEvents);
 	}
 
-	componentDidMount () {
-		this.unmounted = new Rx.Subject()
-			.take(1);
-		//update date/time using rx.interval
-		this.dateTimeSequence
-			.takeUntil(this.unmounted)
-			.subscribe(() => {
+	getStateStream () {
+		let dateTimeSequence = Rx.Observable.interval(500)
+			.startWith(true)
+			.map(() => {
 				let m = moment();
-				this.setState({
+				return {
 					'date' : m.format('dddd MMMM Do'),
 					'time' : m.format('h:mm')
-				});
+				};
 			});
+		//TODO- 5min? should also use a webhook for instant updates plz
+		//merge seq w/ webhook update seq or something
+		let eventSequence = Rx.Observable.interval(300000)
+			.startWith(true)
+			.flatMap(getEvents);
 
-		this.eventSequence
-			.takeUntil(this.unmounted)
-			.subscribe((events) => {
-				this.setState({'events' : events});
-			});
+		return Rx.Observable.combineLatest(
+			dateTimeSequence,
+			eventSequence,
+			(dateTime, events) => ({
+				'dateTime' : dateTime,
+				'events' : events
+			})
+		)
 	}
-	componentWillUnmount () {
-		//cancel observables (date/time/eventSequence)
-		this.unmounted.onNext();
-	}
+
 	render () {
-		let events = this.state.events.map((event) => (
+		let events = this.state.events.map(event => (
 			<li>
 				<span className="eventDate">{event.date}</span>
 				<span className="eventSummary">{event.summary}</span>
@@ -98,8 +98,8 @@ class Calendar extends React.Component {
 
 		return (
 			<div id="calendarContainer">
-				<div className="date">{this.state.date}</div>
-				<div className="time">{this.state.time}</div>
+				<div className="date">{this.state.dateTime.date}</div>
+				<div className="time">{this.state.dateTime.time}</div>
 				<ul className="events">
 					{events}
 				</ul>

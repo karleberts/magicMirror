@@ -9,5 +9,6 @@ module.exports = {
 			{'test': /\.json$/, 'loader': 'json-loader'},
 			{'test': /\.hbs$/, 'loader': 'handlebars-loader'},
 		]
-	}
+	},
+	'devtool': 'inline-source-map'
 };

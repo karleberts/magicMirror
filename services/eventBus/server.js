@@ -22,7 +22,7 @@ const wss = new WebSocketServer({'port' : PORT});
 
 function onClose (endpointId, subscriptions) {
 	delete endpoints[endpointId];
-	subscriptions.forEach((sub) => sub.dispose());
+	subscriptions.forEach(sub => sub.dispose());
 }
 function getEndpointIdFromConnection (ws) {
 	let query = url.parse(ws.upgradeReq.url).query || '';
@@ -42,12 +42,12 @@ function addEndpoint (id, ws) {
 function addSubscription (subscriptions, subscriptionRequest) {
 	var subs = subscriptions[subscriptionRequest.topic] || [];
 	let messageSubscription = messageStream
-		.filter((message) => (
+		.filter(message => (
 			//message.from !== ws &&
 			(!message.to || message.to === endpointId) &&
 			message.topic === subscriptionRequest.topic
 		))
-		.subscribe(Rx.Observer.create((message) => {
+		.subscribe(Rx.Observer.create(message => {
 			ws.send(JSON.stringify({
 				'method' : 'message',
 				'data' : {
@@ -60,13 +60,13 @@ function addSubscription (subscriptions, subscriptionRequest) {
 }
 function removeSubscription (subscriptions, req) {
 	if (subscriptions[req.topic]) {
-		subscriptions[req.topic].forEach((stream) => { stream.dispose(); });
+		subscriptions[req.topic].forEach(stream => { stream.dispose(); });
 	}
 	return R.dissoc(req.topic, subscriptions);
 }
 
 Rx.Observable.fromEvent(wss, 'connection')
-	.subscribe((ws) => {
+	.subscribe(ws => {
 		let endpointId = getEndpointIdFromConnection(ws);
 		//save a reference to this socket in the endpoint id map
 		//requests/responses can specify an endpoint in order to message directly to that socket
@@ -83,7 +83,7 @@ Rx.Observable.fromEvent(wss, 'connection')
 		 * Stream of all incoming socket messages
 		 */
 		let socketMessages = Rx.Observable.fromEvent(ws, 'message')
-			.map((msg) => JSON.parse(msg));
+			.map(msg => JSON.parse(msg));
 
 		/**
 		 * Handle subscription requests
@@ -92,15 +92,15 @@ Rx.Observable.fromEvent(wss, 'connection')
 		 * subscribes to 'messageStream' events with the specified topic
 		 */
 		socketMessages
-			.filter((msg) => msg.method === 'subscribe')
-			.map((evt)  => ({
+			.filter(msg => msg.method === 'subscribe')
+			.map(evt => ({
 				'topic' : evt.data.topic,
 				'id' : evt.id
 			}))
-			.do((subscriptionRequest) => {
+			.do(subscriptionRequest => {
 				subscriptions = addSubscription(subscriptions, subscriptionRequest);
 			})
-			.subscribe((subscriptionRequest) => {
+			.subscribe(subscriptionRequest => {
 				ws.send(JSON.stringify({
 					'method' : 'subscription.response',
 					'id' : subscriptionRequest.id
@@ -111,15 +111,15 @@ Rx.Observable.fromEvent(wss, 'connection')
 		 * Handle unsubscribe requests
 		 */
 		socketMessages
-			.filter((msg) => msg.method === 'unsubscribe')
-			.map((evt)  => ({
+			.filter(msg => msg.method === 'unsubscribe')
+			.map(evt => ({
 				'topic' : evt.data.topic,
 				'id' : evt.id
 			}))
-			.do((req) => {
+			.do(req => {
 				subscriptions = removeSubscription(subscriptions, req);
 			})
-			.subscribe((req) => {
+			.subscribe(req => {
 				ws.send(JSON.stringify({
 					'method' : 'unsubscribe.response',
 					'id' : req.id
@@ -131,7 +131,7 @@ Rx.Observable.fromEvent(wss, 'connection')
 		 * e.g. {method: 'message', data: {message: {foo: 'bar}}}
 		 */
 		let messageSubscription = socketMessages
-			.filter((msg) => msg.method === 'message')
+			.filter(msg => msg.method === 'message')
 			.subscribe(Rx.Observer.create(function (msg) {
 				messageStream.onNext({
 					'from' : ws,
@@ -146,14 +146,14 @@ Rx.Observable.fromEvent(wss, 'connection')
 		 * requests can have accept only one response
 		 */
 		let requestSubscription = socketMessages
-			.filter((msg) => msg.method === 'request')
-			.do((request) => {
+			.filter(msg => msg.method === 'request')
+			.do(request => {
 				ws.send(JSON.stringify({
 					'method' : 'request.received',
 					'id' : request.id
 				}))
 			})
-			.subscribe(Rx.Observer.create((msg) => {
+			.subscribe(Rx.Observer.create(msg => {
 				//set up a response listener
 				//TODO - partially apply the 'from' arg as the current endpoint id
 				//responding client should emit {'method' : 'request.response', 'to' : from, 'id' : id} to respond
@@ -182,8 +182,8 @@ Rx.Observable.fromEvent(wss, 'connection')
 		 * Route request.response messages
 		 */
 		let responseSubscription = socketMessages
-			.filter((msg) => msg.method === 'request.response')
-			.subscribe(Rx.Observer.create((msg) => {
+			.filter(msg => msg.method === 'request.response')
+			.subscribe(Rx.Observer.create(msg => {
 				ws.send(JSON.stringify(msg));
 			}));
 	});

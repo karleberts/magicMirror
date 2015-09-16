@@ -21,23 +21,25 @@ function onFoo (msg) {
 	console.log('received a foo, ', msg);
 }
 
+class Mirror extends React.Component {
+	constructor (props) {
+		super(props);
+		this.state = {
+			'visible'	: true
+		};
+	}
+	render () {
+		return (
+			<div>
+				<Weather visible={this.state.visible} />
+				<Calendar visible={this.state.visible} />
+			</div>
+		);
+	}
+}
 
 
 $(document).ready(() => {
 	var container = document.getElementById('content');
-	//React.render(<Weather></Weather>, container);
-	React.render(<Calendar></Calendar>, container);
-	//var $el = $('#content');
-	//var $weatherContainer = $('<div>')
-	//	.attr('id', 'weatherContainer')
-	//	.appendTo($el);
-	//var $calendarContainer = $('<div>')
-	//	.attr('id', 'calendarContainer')
-	//	.appendTo($el);
-	//
-	//Promise.all([
-	//	weather.init($weatherContainer),
-	//	calendar.init($calendarContainer)
-	//]);
-
+	React.render(<Mirror />, container);
 });

@@ -27,11 +27,11 @@ function connect (endpointId) {
 		}));
 		sock.endpointId = endpointId;
 		sock.subscribe(Rx.Observer.create(
-			(evt) => {
+			evt => {
 				//try json parsing the event, should always work
 				eventSource.onNext(JSON.parse(evt.data));
 			},
-			(err) => {
+			err => {
 				//reconnect on error
 			},
 			() => {
@@ -67,7 +67,7 @@ function subscribe(topic) {
 		}
 	});
 	return eventSource
-		.filter((evt) => (
+		.filter(evt => (
 			evt.method === 'subscription.response' &&
 			evt.id === id
 		))
@@ -75,7 +75,7 @@ function subscribe(topic) {
 		//.timeout(10000)
 		.flatMap(() => {
 			return eventSource
-				.filter((evt) => (evt.method === 'message' &&
+				.filter(evt => (evt.method === 'message' &&
 					(!topic || evt.topic === topic)
 				))
 		})
@@ -91,7 +91,7 @@ function unsubscribe (topic) {
 		}
 	});
 	return eventSource
-		.filter((evt) => (
+		.filter(evt => (
 			evt.method === 'unsubscribe.response' &&
 			evt.id === id
 		))
@@ -117,20 +117,20 @@ function request (endpointId, topic, params) {
 		}
 	});
 	return eventSource
-		.filter((evt) => (
+		.filter(evt => (
 			evt.method === 'request.received' &&
 			evt.id === id
 		))
 		.take(1)
 		.flatMap(() => eventSource
-			.filter((evt) => (
+			.filter(evt => (
 				evt.method === 'request.response' &&
 				evt.from === endpointId &&
 				evt.id === id
 			))
 		)
 		.take(1)
-		.map((response) => {
+		.map(response => {
 			if (response.error) {
 				throw new Error(response.error);
 			}
@@ -171,8 +171,8 @@ function sendSocketMessage(msg) {
  * Exposed as exports.requests
  */
 let requestStream = eventSource
-	.filter((evt) => (evt.method === 'request'))
-	.map((request) => ({
+	.filter(evt => (evt.method === 'request'))
+	.map(request => ({
 		'topic' : request.data.topic,
 		'params' : request.data.params,
 		'respond' : R.once(R.partial(respond, request.from, request.id))
