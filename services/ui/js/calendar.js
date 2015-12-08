@@ -3,11 +3,12 @@ const Promise = require('bluebird');
 const $ = require('jquery');
 const moment = require('moment');
 const RxReact = require('rx-react');
-const React = require('react/addons');
-const ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
+const React = require('react');
+//const React = require('react/addons');
+//const ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
 const Rx = require('rx');
 const R = require('ramda');
-const config = gData.config;
+const { config } = gData;
 
 const CLIENT_ID = config.apiKeys.google.clientId;
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
@@ -37,7 +38,7 @@ function getEvents () {
 		'method'	: 'get'
 	}))
 		.then(response => {
-			let gCal = response[0];
+			let gCal = response;
 			return gCal.items
 				.map(event => formatEvent(event));
 		})
@@ -69,12 +70,14 @@ class Calendar extends RxReact.Component {
 					'date' : m.format('dddd MMMM Do'),
 					'time' : m.format('h:mm')
 				};
-			});
+			})
+			.distinctUntilChanged(dt => JSON.stringify(dt.time));
 		//TODO- 5min? should also use a webhook for instant updates plz
 		//merge seq w/ webhook update seq or something
 		let eventSequence = Rx.Observable.interval(300000)
 			.startWith(true)
-			.flatMap(getEvents);
+			.flatMap(getEvents)
+			.distinctUntilChanged(JSON.stringify);
 
 		return Rx.Observable.combineLatest(
 			dateTimeSequence,
@@ -88,7 +91,7 @@ class Calendar extends RxReact.Component {
 
 	render () {
 		let events = this.state.events.map(event => (
-			<li>
+			<li key={event.id}>
 				<span className="eventDate">{event.date}</span>
 				<span className="eventSummary">{event.summary}</span>
 				<span className="eventTime">({event.time})</span>

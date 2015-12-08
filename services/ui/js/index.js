@@ -1,16 +1,17 @@
 "use strict";
 
-var $ = require('jquery');
-var Rx = require('rx');
-var React = require('react');
-var Promise = require('bluebird');
-var Weather = require('./weather');
-var Calendar = require('./calendar');
+const $ = require('jquery');
+const Rx = require('rx');
+const React = require('react');
+const { render } = require('react-dom');
+const Promise = require('bluebird');
+const Weather = require('./weather');
+const Calendar = require('./calendar');
 //TODO- global ref
-var eventBus = window.eb = require('../../eventBus/client');
+const eventBus = window.eb = require('../../eventBus/client');
 eventBus.connect('magicMirror.ui')
 	.then(() => {
-		var fooStream = eventBus.subscribe('faceDetect.result');
+		const fooStream = eventBus.subscribe('faceDetect.result');
 		fooStream.subscribe(onFoo);
 	});
 eventBus.requests.subscribe(({topic, params, respond}) => {
@@ -41,5 +42,5 @@ class Mirror extends React.Component {
 
 $(document).ready(() => {
 	var container = document.getElementById('content');
-	React.render(<Mirror />, container);
+	render(<Mirror />, container);
 });

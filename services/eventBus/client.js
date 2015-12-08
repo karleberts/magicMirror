@@ -1,3 +1,4 @@
+/* @flow weak */
 "use strict";
 /**
  * Created by Karl on 6/21/2015.
@@ -21,10 +22,7 @@ let sock;
 function connect (endpointId) {
 	return new Promise((resolve, reject) => {
 		let url = getUrl(endpointId);
-		sock = fromWebsocket(url, null, Rx.Observer.create(() => {
-			//connected
-			resolve();
-		}));
+		sock = fromWebsocket(url, null, Rx.Observer.create(() => resolve()));
 		sock.endpointId = endpointId;
 		sock.subscribe(Rx.Observer.create(
 			evt => {
