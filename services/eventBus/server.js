@@ -3,10 +3,6 @@ const config = require('../../config.json');
 const PORT = config.ports.eventBus;
 let endpoints = {};
 
-const memwatch = require('memwatch-next');
-memwatch.on('leak', function(info) {
-	console.log(info);
-});
 
 const url = require('url');
 const querystring = require('querystring');
@@ -22,7 +18,7 @@ const wss = new WebSocketServer({'port' : PORT});
 
 function onClose (endpointId, subscriptions) {
 	delete endpoints[endpointId];
-	subscriptions.forEach(sub => sub.dispose());
+	Object.keys(subscriptions).forEach(k => subscriptions[k].forEach(sub => sub.dispose()))
 }
 function getEndpointIdFromConnection (ws) {
 	let query = url.parse(ws.upgradeReq.url).query || '';
@@ -39,7 +35,7 @@ function addEndpoint (id, ws) {
 	}
 	return R.assoc(id, ws, endpoints);
 }
-function addSubscription (subscriptions, subscriptionRequest) {
+function addSubscription (ws, subscriptions, subscriptionRequest) {
 	var subs = subscriptions[subscriptionRequest.topic] || [];
 	let messageSubscription = messageStream
 		.filter(message => (
@@ -56,7 +52,7 @@ function addSubscription (subscriptions, subscriptionRequest) {
 				}
 			}));
 		}));
-	return subs.concat(messageSubscription);
+	return R.assoc(subscriptionRequest.topic, subs.concat(messageSubscription), subscriptions);
 }
 function removeSubscription (subscriptions, req) {
 	if (subscriptions[req.topic]) {
@@ -75,14 +71,13 @@ Rx.Observable.fromEvent(wss, 'connection')
 
 		//clean up on ws disconnect
 		Rx.Observable.fromEvent(ws, 'close')
-			.subscribe(() => {
-				onClose(endpointId, subscriptions);
-			});
+			.subscribe(() => onClose(endpointId, subscriptions));
 
 		/**
 		 * Stream of all incoming socket messages
 		 */
-		let socketMessages = Rx.Observable.fromEvent(ws, 'message')
+		let socketMessages = Rx.Observable
+			.fromEvent(ws, 'message')
 			.map(msg => JSON.parse(msg));
 
 		/**
@@ -98,7 +93,7 @@ Rx.Observable.fromEvent(wss, 'connection')
 				'id' : evt.id
 			}))
 			.do(subscriptionRequest => {
-				subscriptions = addSubscription(subscriptions, subscriptionRequest);
+				subscriptions = addSubscription(ws, subscriptions, subscriptionRequest);
 			})
 			.subscribe(subscriptionRequest => {
 				ws.send(JSON.stringify({

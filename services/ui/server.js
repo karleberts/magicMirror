@@ -10,43 +10,38 @@ const google = require('googleapis');
 const moment = require('moment');
 
 const config = require('../../config.json');
-const ZIP_CODE = config.weather.zip + ',us';
+const ZIP_CODE = `${config.weather.zip},us`;
 const UI_PORT = config.ports.ui;
-const UI_URI = 'http://localhost:' + UI_PORT;
+const UI_URI = `http://localhost:${UI_PORT}`;
 
-const indexTmpl = Handlebars.compile(fs.readFileSync(__dirname + '/index.hbs', 'utf8'));
+const indexTmpl = Handlebars.compile(fs.readFileSync(`${__dirname}/index.hbs`, 'utf8'));
 
 const calendar = google.calendar('v3');
 const oAuthClient = new google.auth.OAuth2(
 	config.apiKeys.google.clientId, 
 	config.apiKeys.google.clientSecret,
-	UI_URI + '/gAuth'
+	`${UI_URI}/gAuth`
 );
-let authed = false;
 
-let app = express();
-app.use(express.static(__dirname + '/public'));
-app.use('/font', express.static(__dirname + '/font'));
+const app = express();
+app.use(express.static(`${__dirname}/public`));
+app.use('/font', express.static(`${__dirname}/font`));
 
 app.get('/', (req, res) => {
-	let gData = {
-		'config'	: config
-	};
-	let html = indexTmpl({
-		'gData'	: JSON.stringify(gData)
+	const gData = { config };
+	const html = indexTmpl({
+		gData	: JSON.stringify(gData)
 	});
 	res.send(html);
 });
 app.get('/forecastIoProxy', (req, res) => {
-	 let url = 'https://api.forecast.io/forecast/' + config.apiKeys.forecastIo;
-	 url += '/' + config.weather.lat + ',' + config.weather.long;
+	 let url = `https://api.forecast.io/forecast/${config.apiKeys.forecastIo}`;
+	 url += `/${config.weather.lat},${config.weather.long}`;
 	return rp(url)
-		.then((resp) => {
-			res.send(resp);
-		});
+		.then(resp => res.send(resp));
 });
 app.get('/calendar', (req, res) => {
-	fs.readFileAsync(__dirname + '/__gapi.json', 'utf8')
+	fs.readFileAsync(`${__dirname}/__gapi.json`, 'utf8')
 		.catch((err) => {
 			console.log('no auth info found, doing authentication.', err);
 			let url = oAuthClient.generateAuthUrl({
@@ -74,9 +69,9 @@ app.get('/gAuth', (req, res) => {
 			if (err) {
 				console.log('error authenticating with google', err);
 			} else {
-				fs.writeFileAsync(__dirname + '/__gapi.json', JSON.stringify(tokens))
+				fs.writeFileAsync(`${__dirname}/__gapi.json`, JSON.stringify(tokens))
 					.then(() => {
-						res.redirect(UI_URI + '/calendar');
+						res.redirect(`${UI_URI}/calendar`);
 					});
 			}
 		});

@@ -91,6 +91,7 @@ class Weather extends RxReact.Component {
 		return Rx.Observable.interval(600000)
 			.startWith(true)
 			.flatMap(() => Rx.Observable.fromPromise(request()))
+			.distinctUntilChanged(JSON.stringify)
 			.map(weather => ({'weather' : weather}));
 	}
 
@@ -98,7 +99,7 @@ class Weather extends RxReact.Component {
 		const weather = this.state.weather;
 		const upcoming = weather.upcoming.map(up => {
 			return (
-				<div>
+				<div key={up.icon + up.date + up.temp}>
 					<i className="wi {up.icon}"></i>
 					<span className="date">{up.date}</span>
 					<span className="temp">{up.temp}<i className="wi wi-degrees"></i></span>

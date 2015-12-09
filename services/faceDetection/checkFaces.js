@@ -12,14 +12,13 @@ const config = require('../../config.json');
 const CAPTURE_PATH = '/Volumes/RAM Disk/snapshot.jpg';
 const SLEEP_AFTER_FACE = config.faceDetect.sleep_after_face * 1000;
 const FACE_CHECK_INTVL = config.faceDetect.face_check_interval * 1000;
-function NoFaces () {
-}
+function NoFaces () { }
 NoFaces.prototype = Error.prototype;
 
-function captureImage (cb) {
+function captureImage () {
 	return new Promise((resolve, reject) => {
-		let imageCap = cp.spawn('imagesnap', ['-w', 1.5, CAPTURE_PATH]);
-		imageCap.on('close', (code, signal) => {
+		const imageCap = cp.spawn('imagesnap', ['-w', 1.5, CAPTURE_PATH]);
+		imageCap.on('close', code => {
 			if (code === 0) {
 				resolve();
 			} else {
@@ -31,12 +30,12 @@ function captureImage (cb) {
 
 function findFaces () {
 	return new Promise((resolve, reject) => {
-		let faceDetect = cp.spawn('python', [
+		const faceDetect = cp.spawn('python', [
 			__dirname + path.sep + 'face_detect.py',
 			CAPTURE_PATH,
 			__dirname + path.sep + 'haarcascade_frontalface_default.xml'
 		]);
-		faceDetect.on('close', (code, signal) => {
+		faceDetect.on('close', code => {
 			if (code === 0) {
 				resolve();
 			} else {
@@ -55,7 +54,7 @@ function start () {
 			//TODO - make this something like 2 minutes
 			setTimeout(start, SLEEP_AFTER_FACE);
 		})
-		.catch((err) => {
+		.catch(err => {
 			if (err instanceof NoFaces) {
 				console.log('did not find a face :(');
 			} else {
@@ -66,5 +65,6 @@ function start () {
 			setTimeout(start, FACE_CHECK_INTVL);
 		});
 }
+
 eventBus.connect('magicMirror.faceDetect')
 	.then(start);
