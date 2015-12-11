@@ -33,10 +33,21 @@ function connect (endpointId) {
 				//reconnect on error
 			},
 			() => {
+				console.log('disconnected');
 				//reconnect on disconnect
 			}
 		));
 	});
+}
+
+/**
+ * Disconnect a
+ */
+function disconnect () {
+	if (!sock) {
+		throw new Error('Not connected');
+	}
+	sock.onComplete();
 }
 
 /**
@@ -71,12 +82,11 @@ function subscribe(topic) {
 		))
 		.take(1)
 		//.timeout(10000)
-		.flatMap(() => {
-			return eventSource
-				.filter(evt => (evt.method === 'message' &&
-					(!topic || evt.topic === topic)
-				))
-		})
+		.flatMap(() => eventSource
+			.filter(evt => (evt.method === 'message' &&
+				(!topic || evt.topic === topic)
+			))
+		)
 }
 
 function unsubscribe (topic) {
@@ -194,6 +204,7 @@ function respond (to, id, params) {
 
 module.exports = {
 	'connect': connect,
+	'disconnect': disconnect,
 	'subscribe': subscribe,
 	'unsubscribe' : unsubscribe,
 	'sendMessage': sendMessage,

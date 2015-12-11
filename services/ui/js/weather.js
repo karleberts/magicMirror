@@ -1,13 +1,13 @@
 "use strict";
 const Promise = require('bluebird');
-const RxReact = require('rx-react');
 const React = require('react');
+const RxReact = require('rx-react');
 const Rx = require('rx');
 const $ = require('jquery');
 const moment = require('moment');
 const querystring = require('querystring');
+const cx = require('classnames');
 
-const config = gData.config;
 //TODO- create an 'error' service that sends me emails/texts (debounced 1/hr) on any kind of error -
 //should listen to 'error' events on the bus...
 //TODO- any api or other errors should raise errors on the bus
@@ -92,15 +92,16 @@ class Weather extends RxReact.Component {
 			.startWith(true)
 			.flatMap(() => Rx.Observable.fromPromise(request()))
 			.distinctUntilChanged(JSON.stringify)
-			.map(weather => ({'weather' : weather}));
+			.map(weather => ({weather}));
 	}
 
 	render () {
 		const weather = this.state.weather;
 		const upcoming = weather.upcoming.map(up => {
 			return (
+				//<div key={up.icon + up.date + up.temp}>
 				<div key={up.icon + up.date + up.temp}>
-					<i className="wi {up.icon}"></i>
+					<i className={cx('wi', up.icon)}></i>
 					<span className="date">{up.date}</span>
 					<span className="temp">{up.temp}<i className="wi wi-degrees"></i></span>
 				</div>
@@ -113,10 +114,10 @@ class Weather extends RxReact.Component {
 					<span>{weather.sunrise.format('h:mma')}</span>
 					<i className="wi wi-sunset"></i>
 					<span>{weather.sunset.format('h:mma')}</span>
-					<i className="moonPhase wi {weather.moonPhaseClassName}"></i>
+					<i className={cx('moonPhase', 'wi', weather.moonPhaseClassName)}></i>
 				</div>
 				<div className="current">
-					<i className="currentIcon wi {weather.icon}"></i>
+					<i className={cx('currentIcon', 'wi', weather.icon)}></i>
 					<div className="currentTemp">
 						{weather.currentTemp}<i className="wi wi-degrees"></i>
 					</div>
@@ -145,26 +146,6 @@ const iconTable = {
 	'partly-cloudy-day'		: 'wi-day-cloudy',
 	'partly-cloudy-night'	: 'wi-night-partly-cloudy'
 };
-//var iconTable = {
-	//'01d':'wi-day-sunny',
-	//'02d':'wi-day-cloudy',
-	//'03d':'wi-cloudy',
-	//'04d':'wi-cloudy-windy',
-	//'09d':'wi-showers',
-	//'10d':'wi-rain',
-	//'11d':'wi-thunderstorm',
-	//'13d':'wi-snow',
-	//'50d':'wi-fog',
-	//'01n':'wi-night-clear',
-	//'02n':'wi-night-cloudy',
-	//'03n':'wi-night-cloudy',
-	//'04n':'wi-night-cloudy',
-	//'09n':'wi-night-showers',
-	//'10n':'wi-night-rain',
-	//'11n':'wi-night-thunderstorm',
-	//'13n':'wi-night-snow',
-	//'50n':'wi-night-alt-cloudy-windy',
-//};
 
 const moonPhases = [
 	'wi-moon-new',
