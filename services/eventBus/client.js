@@ -57,8 +57,7 @@ function disconnect () {
  */
 function getUrl (endpointId) {
 	endpointId = encodeURIComponent(endpointId);
-	return URL + '?endpointId=' + endpointId;
-	//return `${URL}?endpointId=${endpointId}`;
+	return `${URL}?endpointId=${endpointId}`;
 }
 
 /**
@@ -69,10 +68,10 @@ function getUrl (endpointId) {
 function subscribe(topic) {
 	let id = messageId++;
 	sendSocketMessage({
-		'method': 'subscribe',
-		'id': id,
-		'data': {
-			'topic': topic
+		method: 'subscribe',
+		id: id,
+		data: {
+			topic: topic
 		}
 	});
 	return eventSource
@@ -92,10 +91,10 @@ function subscribe(topic) {
 function unsubscribe (topic) {
 	let id = messageId++;
 	sendSocketMessage({
-		'method': 'unsubscribe',
-		'id': id,
-		'data': {
-			'topic': topic
+		method: 'unsubscribe',
+		id: id,
+		data: {
+			topic: topic
 		}
 	});
 	return eventSource
@@ -116,12 +115,12 @@ function unsubscribe (topic) {
 function request (endpointId, topic, params) {
 	let id = messageId++;
 	sendSocketMessage({
-		'to' : endpointId,
-		'method': 'request',
-		'id': id,
-		'data': {
-			'topic' : topic,
-			'params' : params
+		to : endpointId,
+		method: 'request',
+		id: id,
+		data: {
+			topic : topic,
+			params : params
 		}
 	});
 	return eventSource
@@ -154,22 +153,22 @@ function request (endpointId, topic, params) {
  */
 function sendMessage (topic, message, to) {
 	sendSocketMessage({
-		'method': 'message',
-		'to' : to,
-		'data': {
-			'topic': topic,
-			'contents': message
+		method: 'message',
+		to : to,
+		data: {
+			topic: topic,
+			contents: message
 		}
 	});
 }
 
 /**
  * Internal method for putting data out the socket
- * @param {object} msg - Packet to send over the socket, format should correspond to something the server knows how to interpret
+ * @param {object} msg - Packet to send over the socket, format should correspond to something the server knows how to interpret'
  */
 function sendSocketMessage(msg) {
 	msg = R.merge(msg, {
-		'from' : sock.endpointId
+		from : sock.endpointId
 	});
 	sock.onNext(JSON.stringify(msg))
 }
@@ -181,9 +180,9 @@ function sendSocketMessage(msg) {
 let requestStream = eventSource
 	.filter(evt => (evt.method === 'request'))
 	.map(request => ({
-		'topic' : request.data.topic,
-		'params' : request.data.params,
-		'respond' : R.once(R.partial(respond, request.from, request.id))
+		topic : request.data.topic,
+		params : request.data.params,
+		respond : R.once(R.partial(respond, request.from, request.id))
 	}));
 
 /**
@@ -195,21 +194,21 @@ let requestStream = eventSource
  */
 function respond (to, id, params) {
 	sendSocketMessage({
-		'method' : 'request.response',
-		'to' : to,
-		'id' : id,
-		'data' : params
+		method : 'request.response',
+		to : to,
+		id : id,
+		data : params
 	});
 }
 
 module.exports = {
-	'connect': connect,
-	'disconnect': disconnect,
-	'subscribe': subscribe,
-	'unsubscribe' : unsubscribe,
-	'sendMessage': sendMessage,
-	'request': request,
-	'requests' : requestStream
+	connect: connect,
+	disconnect: disconnect,
+	subscribe: subscribe,
+	unsubscribe : unsubscribe,
+	sendMessage: sendMessage,
+	request: request,
+	requests : requestStream
 };
 
 
