@@ -62,7 +62,7 @@ app.get('/calendar', (req, res) => {
 		});
 });
 app.get('/gAuth', (req, res) => {
-	let code = req.param('code');
+	const { code } = req.query;
 	console.log('code', code);
 	if (code) {
 		oAuthClient.getToken(code, (err, tokens) => {
@@ -79,16 +79,16 @@ app.get('/gAuth', (req, res) => {
 });
 
 function getCalendarEvents (authContents) {
-	let tokens = JSON.parse(authContents);
+	const tokens = JSON.parse(authContents);
 	oAuthClient.setCredentials(tokens);
-	let apiParams = {
-		'calendarId'	: config.apiKeys.google.calendarId,
-		'maxResults'	: 20,
-		'orderBy'		: 'startTime',
-		'singleEvents'	: true,
-		'timeMin'		: moment().format('YYYY-MM-DD') + 'T' + '00:00:00.000Z',
-		'timeMax'		: moment().add(1, 'weeks').format('YYYY-MM-DD') + 'T' + '23:59:59.000Z',
-		'auth'			: oAuthClient
+	const apiParams = {
+		calendarId: config.apiKeys.google.calendarId,
+		maxResults: 20,
+		orderBy: 'startTime',
+		singleEvents: true,
+		timeMin: moment().format('YYYY-MM-DD') + 'T' + '00:00:00.000Z',
+		timeMax: moment().add(1, 'weeks').format('YYYY-MM-DD') + 'T' + '23:59:59.000Z',
+		auth: oAuthClient
 	};
 	console.log(apiParams);
 	return Promise.promisify(calendar.events.list)(apiParams);

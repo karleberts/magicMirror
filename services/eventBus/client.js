@@ -4,7 +4,7 @@
  * Created by Karl on 6/21/2015.
  */
 const Rx = require('rx');
-const WebSocket = require('ws');
+const WebSocket = require('ws') || (window && window.WebSocket);
 const R = require('ramda');
 
 const config = require('../../config.json');
@@ -25,17 +25,10 @@ function connect (endpointId) {
 		sock = fromWebsocket(url, null, Rx.Observer.create(() => resolve()));
 		sock.endpointId = endpointId;
 		sock.subscribe(Rx.Observer.create(
-			evt => {
-				//try json parsing the event, should always work
-				eventSource.onNext(JSON.parse(evt.data));
-			},
-			err => {
-				//reconnect on error
-			},
-			() => {
-				console.log('disconnected');
-				//reconnect on disconnect
-			}
+			//try json parsing the event, should always work
+			evt => eventSource.onNext(JSON.parse(evt.data)),
+			err => { /*reconnect on error*/ },
+			() => console.log('disconnected')
 		));
 	});
 }
@@ -69,7 +62,7 @@ function subscribe(topic) {
 	let id = messageId++;
 	sendSocketMessage({
 		method: 'subscribe',
-		id: id,
+		id,
 		data: {
 			topic: topic
 		}
@@ -92,7 +85,7 @@ function unsubscribe (topic) {
 	let id = messageId++;
 	sendSocketMessage({
 		method: 'unsubscribe',
-		id: id,
+		id,
 		data: {
 			topic: topic
 		}
@@ -115,26 +108,18 @@ function unsubscribe (topic) {
 function request (endpointId, topic, params) {
 	let id = messageId++;
 	sendSocketMessage({
-		to : endpointId,
+		to: endpointId,
 		method: 'request',
-		id: id,
-		data: {
-			topic : topic,
-			params : params
-		}
+		id,
+		data: {topic, params}
 	});
 	return eventSource
 		.filter(evt => (
-			evt.method === 'request.received' &&
-			evt.id === id
+			evt.method === 'request.received' && evt.id === id
 		))
 		.take(1)
 		.flatMap(() => eventSource
-			.filter(evt => (
-				evt.method === 'request.response' &&
-				evt.from === endpointId &&
-				evt.id === id
-			))
+			.filter(evt => evt.method === 'request.response' && evt.from === endpointId && evt.id === id)
 		)
 		.take(1)
 		.map(response => {
@@ -154,9 +139,9 @@ function request (endpointId, topic, params) {
 function sendMessage (topic, message, to) {
 	sendSocketMessage({
 		method: 'message',
-		to : to,
+		to,
 		data: {
-			topic: topic,
+			topic,
 			contents: message
 		}
 	});
@@ -168,7 +153,7 @@ function sendMessage (topic, message, to) {
  */
 function sendSocketMessage(msg) {
 	msg = R.merge(msg, {
-		from : sock.endpointId
+		from: sock.endpointId
 	});
 	sock.onNext(JSON.stringify(msg))
 }
@@ -180,9 +165,9 @@ function sendSocketMessage(msg) {
 let requestStream = eventSource
 	.filter(evt => (evt.method === 'request'))
 	.map(request => ({
-		topic : request.data.topic,
-		params : request.data.params,
-		respond : R.once(R.partial(respond, request.from, request.id))
+		topic: request.data.topic,
+		params: request.data.params,
+		respond: R.once(R.partial(respond, request.from, request.id))
 	}));
 
 /**

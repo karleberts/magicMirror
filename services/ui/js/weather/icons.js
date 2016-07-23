@@ -1,4 +1,4 @@
-var icons  {
+var icons = {
 	'day'	: {
 		'thunderstorm'	: 'wi-thunderstorm',
 		'sprinkle'		: 'wi-sprinkle',

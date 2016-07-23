@@ -14,15 +14,11 @@ const wss = new WebSocketServer({'port' : PORT});
 
 function notifyReceived (ws, method, id) {
 	console.log('sending notify over ws', method);
-	ws.send(JSON.stringify({
-		'method' : method,
-		'id' : id
-	}))
+	ws.send(JSON.stringify({method, id}));
 }
 
 function getEndpointIdFromConnection (ws) {
-	let query = url.parse(ws.upgradeReq.url).query || '';
-	query = querystring.parse(query);
+	const query = querystring.parse(url.parse(ws.upgradeReq.url).query || '');
 	if (!query || !query.endpointId) {
 		throw new Error('No endpoint', query);
 	}
@@ -32,22 +28,20 @@ function getEndpointIdFromConnection (ws) {
 const connectionStream = Rx.Observable.fromEvent(wss, 'connection');
 
 connectionStream.subscribe(ws => {
-	let endpointId = getEndpointIdFromConnection(ws);
+	const endpointId = getEndpointIdFromConnection(ws);
 	//can dispose of the underlying streams on disconnect by doing something
 	//in this stream's subscription? (not sure if necessary)
-	let disconnectionStream  = Rx.Observable.fromEvent(ws, 'close');
+	const disconnectionStream  = Rx.Observable.fromEvent(ws, 'close');
 
-	let messageStream = messageBus
+	const messageStream = messageBus
 		.takeUntil(disconnectionStream)
 		.share();
 
 	/**
 	 * Stream of all incoming socket messages
 	 */
-	let socketMessages = Rx.Observable.fromEvent(ws, 'message')
-		.map(msg => {
-			return JSON.parse(msg)
-		})
+	const socketMessages = Rx.Observable.fromEvent(ws, 'message')
+		.map(msg => JSON.parse(msg))
 		.takeUntil(disconnectionStream)
 		.share();
 
@@ -56,49 +50,44 @@ connectionStream.subscribe(ws => {
 	 * e.g. {method: 'message', data: {message: {foo: 'bar}}}
 	 */
 	socketMessages
-		.filter(msg => {
-			let sharedMessageTypes = [
-				'message',
-				'request',
-				'request.response'
-			];
-			return R.contains(msg.method, sharedMessageTypes);
-		})
-		.subscribe(msg => {
-			messageBus.onNext({
-				'method' : msg.method,
-				'id' : msg.id,
-				'to' : msg.to,
-				'from' : endpointId,
-				'data' : msg.data
-			});
-		});
+		.filter(msg => R.contains(msg.method, [
+			'message',
+			'request',
+			'request.response'
+		]))
+		.subscribe(msg => messageBus.onNext({
+			method: msg.method,
+			id: msg.id,
+			to: msg.to,
+			from: endpointId,
+			data: msg.data
+		}));
 
 	/**
 	 * Handle subscription requests
 	 * e.g. {method: 'subscribe', data: {topic: 'foo'}}
 	 * Notifies the subscriber of the subscription reception
 	 */
-	let subscriptionStream = socketMessages
+	const subscriptionStream = socketMessages
 		.filter(msg => msg.method === 'subscribe')
 		.map(evt  => ({
-			'type': 'subscribe',
-			'topic': evt.data.topic,
-			'id': evt.id
+			type: 'subscribe',
+			topic: evt.data.topic,
+			id: evt.id
 		}))
 		.do(req => notifyReceived(ws, 'subscription.received', req.id));
 
-	let unsubStream = socketMessages
+	const unsubStream = socketMessages
 		.filter(msg => msg.method === 'unsubscribe')
 		.map(evt => ({
-			'type' : 'unsubscribe',
-			'topic' : evt.data.topic,
-			'id' : evt.id
+			type: 'unsubscribe',
+			topic: evt.data.topic,
+			id: evt.id
 		}))
 		.do(req => notifyReceived(ws, 'unsubscribe.response', req.id));
 
 	//build a stream from subscriptionStream, removing topics when an 'unsub' message is received
-	let aggregateSubscriptionStream = subscriptionStream
+	const aggregateSubscriptionStream = subscriptionStream
 		.merge(unsubStream)
 		.scan((subscriptions, req) => {
 			console.log('adding a subscription');
@@ -113,35 +102,30 @@ connectionStream.subscribe(ws => {
 
 	//start the outgoing message stream def by getting incoming messages from other sockets
 	//with topics to which this socket has subscribed
-	let subscribedMessageStream = messageStream
+	const subscribedMessageStream = messageStream
 		.filter(msg => msg.method === 'message')
 		.withLatestFrom(
 			aggregateSubscriptionStream,
-			(message, subscriptions) => ({
-				'message' :message,
-				'subscriptions' : subscriptions
-			})
-		)
+			(message, subscriptions) => ({message, subscriptions}))
 		.filter(p => {
-			let message = p.message;
-			let subscriptions = p.subscriptions;
+			const { message, subscriptions } = p;
 			return (message.from !== ws &&
 					(!message.to || message.to === endpointId) &&
 					subscriptions[message.data.topic]);
 		})
-		.map(evt => (evt.message));
+		.map(evt => evt.message);
 
 	//Stream of all 'request' messages from any socket
 	//filter out any not designated for this endpoint
-	let requestsForEndpointStream = messageStream
-		.filter(msg => (msg.method === 'request' && msg.to === endpointId));
+	const requestsForEndpointStream = messageStream
+		.filter(msg => msg.method === 'request' && msg.to === endpointId);
 
 
 	/**
 	 * Route request.response messages to this endpoint
 	 * client can filter valid req ids
 	 */
-	let requestResponseStream = messageStream
+	const requestResponseStream = messageStream
 		.filter(msg => (msg.method === 'request.response' &&
 				msg.to === endpointId));
 
@@ -149,7 +133,7 @@ connectionStream.subscribe(ws => {
 	 * Merge all the message streams the client needs to receive
 	 * @type {T|Rx.Observable<T>}
 	 */
-	let outgoingMessageStream = Rx.Observable
+	const outgoingMessageStream = Rx.Observable
 		.merge(
 			subscribedMessageStream,
 			requestsForEndpointStream,
