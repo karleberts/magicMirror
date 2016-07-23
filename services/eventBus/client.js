@@ -4,7 +4,13 @@
  * Created by Karl on 6/21/2015.
  */
 const Rx = require('rx');
-const WebSocket = require('ws') || (window && window.WebSocket);
+const getWebsocket = function () {
+	try {
+		return (window && window.WebSocket);
+	} catch (e) {
+		return require('ws');
+	}
+}
 const R = require('ramda');
 
 const config = require('../../config.json');
@@ -201,6 +207,7 @@ module.exports = {
 //adapted from rx-dom in order to allow using 'ws' as the socket API (for node)
 //instead of the browser WebSocket API (rx-dom only works w/ browser native API)
 function fromWebsocket(url, protocol, openObserver, closingObserver) {
+	const WebSocket = getWebsocket();
 	if (!WebSocket) {
 		throw new TypeError('WebSocket not implemented in your runtime.');
 	}
