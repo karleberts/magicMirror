@@ -1,8 +1,6 @@
 "use strict";
 const moment = require('moment');
 const React = require('react');
-//const React = require('react/addons');
-//const ReactCSSTransitionGroup = React.addons.CSSTransitionGroup;
 
 class Calendar extends React.Component {
 	constructor (props) {

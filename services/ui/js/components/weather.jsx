@@ -1,5 +1,5 @@
 "use strict";
-const Promise = require('bluebird');
+const R = require('ramda');
 const React = require('react');
 const cx = require('classnames');
 
@@ -12,7 +12,8 @@ const UpcomingItem = require('./weather/upcomingItem.jsx');
 
 class Weather extends React.Component {
 	componentWillMount () {
-		this.props.monitorWeather();
+		// this.props.monitorWeather();
+		this.props.fetchWeather();
 	}
 
 	componentWillUnmount () {
@@ -22,25 +23,25 @@ class Weather extends React.Component {
 	render () {
 		const { weather } = this.props;
 		const upcoming = weather.upcoming
-			.map((up, i) => <UpcomingItem {...Object.assign({key: i}, up)} />);
+			.map((up, i) => <UpcomingItem {...R.merge(up, {key: i})} />);
 
 		return (
 			<div id="weatherContainer">
 				<div className="sun">
-					<i className="wi wi-sunrise"></i>
+					<i className="wi wi-sunrise" />
 					<span>{weather.sunrise.format('h:mma')}</span>
-					<i className="wi wi-sunset"></i>
+					<i className="wi wi-sunset" />
 					<span>{weather.sunset.format('h:mma')}</span>
-					<i className={cx('moonPhase', 'wi', weather.moonPhaseClassName)}></i>
+					<i className={cx('moonPhase', 'wi', weather.moonPhaseClassName)} />
 				</div>
 				<div className="current">
-					<i className={cx('currentIcon', 'wi', weather.icon)}></i>
+					<i className={cx('currentIcon', 'wi', weather.icon)} />
 					<div className="currentTemp">
-						{weather.currentTemp}<i className="wi wi-degrees"></i>
+						{weather.currentTemp}<i className="wi wi-degrees" />
 					</div>
 					<div className="hilo">
-						<div>{weather.maxTemp}<i className="wi wi-degrees"></i></div>
-						<div>{weather.minTemp}<i className="wi wi-degrees"></i></div>
+						<div>{weather.maxTemp}<i className="wi wi-degrees" /></div>
+						<div>{weather.minTemp}<i className="wi wi-degrees" /></div>
 					</div>
 				</div>
 				<div className="upcoming">
@@ -52,6 +53,7 @@ class Weather extends React.Component {
 }
 Weather.propTypes = {
 	abortMonitor: React.PropTypes.func.isRequired,
+	fetchWeather: React.PropTypes.func.isRequired,
 	monitorWeather: React.PropTypes.func.isRequired,
 	weather: React.PropTypes.object,
 };

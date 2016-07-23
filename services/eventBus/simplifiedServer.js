@@ -4,7 +4,7 @@ const PORT = config.ports.eventBus;
 
 const url = require('url');
 const querystring = require('querystring');
-const Rx = require('rx');
+const Rx = require('rxjs');
 const R = require('ramda');
 //stream of 'message' type messages
 const messageBus = new Rx.Subject();
@@ -25,7 +25,7 @@ function getEndpointIdFromConnection (ws) {
 	return query.endpointId;
 }
 
-const connectionStream = Rx.Observable.fromEvent(wss, 'connection');
+const connectionStream = Rx.Subscriber.fromEvent(wss, 'connection');
 
 connectionStream.subscribe(ws => {
 	const endpointId = getEndpointIdFromConnection(ws);
@@ -55,7 +55,7 @@ connectionStream.subscribe(ws => {
 			'request',
 			'request.response'
 		]))
-		.subscribe(msg => messageBus.onNext({
+		.subscribe(msg => messageBus.next({
 			method: msg.method,
 			id: msg.id,
 			to: msg.to,

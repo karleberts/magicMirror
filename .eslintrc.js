@@ -44,7 +44,6 @@ module.exports = {
 		"lodash/matches-prop-shorthand" : 0,
 		"lodash/prefer-matches" : 0,
 		"lodash/prefer-reject" : 0,
-		"lodash-v4migration/no-removed-v3-funtionality": 2,
 		"lodash/path-style": [2, "as-needed"],
     }
 };

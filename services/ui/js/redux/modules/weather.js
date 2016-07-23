@@ -1,11 +1,7 @@
 'use strict';
 const { Observable } = require('rxjs');
 const R = require('ramda');
-const rp = require('request-promise');
-const update = require('react-addons-update');
 const moment = require('moment');
-
-const qualifyUrl = require('../../libs/qualifyUrl');
 
 const iconTable = {
 	'clear-day'				: 'wi-day-sunny',
@@ -107,10 +103,10 @@ function format (forecast) {
 //forecastUrl += '/' + config.weather.lat + ',' + config.weather.long;
 //!!for now forecast.io reqs are routed through a node proxy b/c forecast.io does not allow CORS
 const forecastUrl = '/forecastIoProxy';
-const formatAndReceive = R.pipe(JSON.parse, format, receiveWeather);
+const formatAndReceive = R.pipe(R.prop('response'), format, receiveWeather);
 const fetchWeatherEpic = action$ => action$
 	.filter(action => action.type === FETCH_WEATHER)
-	.flatMap(() => rp(qualifyUrl(forecastUrl)))
+	.flatMap(() => Observable.ajax({url: forecastUrl, responseType: 'json'}))
 	.map(formatAndReceive)
 	.catch(err => Observable.of({type: FETCH_WEATHER, error: true, payload: err}));
 

@@ -3,7 +3,6 @@
 const cp = require('child_process');
 var path = require('path');
 const Promise = require('bluebird');
-const Rx = require('rx');
 
 const eventBus = require('../eventBus/client');
 

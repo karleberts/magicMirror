@@ -3,16 +3,10 @@
 /**
  * Created by Karl on 6/21/2015.
  */
-const Rx = require('rx');
-const getWebsocket = function () {
-	try {
-		return (window && window.WebSocket);
-	} catch (e) {
-		return require('ws');
-	}
-}
+const Rx = require('rxjs');
 const R = require('ramda');
 
+const fromWebsocket = require('./libs/streamFromWebSocket');
 const config = require('../../config.json');
 const PORT = config.ports.eventBus;
 const URL = 'ws://localhost:' + PORT + '/';
@@ -28,11 +22,11 @@ let sock;
 function connect (endpointId) {
 	return new Promise((resolve, reject) => {
 		let url = getUrl(endpointId);
-		sock = fromWebsocket(url, null, Rx.Observer.create(() => resolve()));
+		sock = fromWebsocket(url, null, Rx.Subscriber.create(() => resolve()));
 		sock.endpointId = endpointId;
-		sock.subscribe(Rx.Observer.create(
+		sock.subscribe(Rx.Subscriber.create(
 			//try json parsing the event, should always work
-			evt => eventSource.onNext(JSON.parse(evt.data)),
+			evt => eventSource.next(JSON.parse(evt.data)),
 			err => { /*reconnect on error*/ },
 			() => console.log('disconnected')
 		));
@@ -46,7 +40,7 @@ function disconnect () {
 	if (!sock) {
 		throw new Error('Not connected');
 	}
-	sock.onComplete();
+	sock.complete();
 }
 
 /**
@@ -161,7 +155,7 @@ function sendSocketMessage(msg) {
 	msg = R.merge(msg, {
 		from: sock.endpointId
 	});
-	sock.onNext(JSON.stringify(msg))
+	sock.next(JSON.stringify(msg))
 }
 
 /**
@@ -193,96 +187,11 @@ function respond (to, id, params) {
 }
 
 module.exports = {
-	connect: connect,
-	disconnect: disconnect,
-	subscribe: subscribe,
-	unsubscribe : unsubscribe,
-	sendMessage: sendMessage,
-	request: request,
+	connect,
+	disconnect,
+	subscribe,
+	unsubscribe,
+	sendMessage,
+	request,
 	requests : requestStream
 };
-
-
-//Open a socket connection to the provided URI
-//adapted from rx-dom in order to allow using 'ws' as the socket API (for node)
-//instead of the browser WebSocket API (rx-dom only works w/ browser native API)
-function fromWebsocket(url, protocol, openObserver, closingObserver) {
-	const WebSocket = getWebsocket();
-	if (!WebSocket) {
-		throw new TypeError('WebSocket not implemented in your runtime.');
-	}
-
-	let socket;
-
-	function socketClose(code, reason) {
-		if (socket) {
-			if (closingObserver) {
-				closingObserver.onNext();
-				closingObserver.onCompleted();
-			}
-			if (!code) {
-				socket.close();
-			} else {
-				socket.close(code, reason);
-			}
-		}
-	}
-
-	let observable = Rx.Observable.create(function (obs) {
-		socket = protocol ? new WebSocket(url, protocol) : new WebSocket(url);
-		if (!socket.removeEventListener && socket.removeListener) {
-			socket.removeEventListener = socket.removeListener;
-		}
-
-		function openHandler(e) {
-			openObserver.onNext(e);
-			openObserver.onCompleted();
-			socket.removeEventListener('open', openHandler, false);
-		}
-
-		function messageHandler(e) {
-			obs.onNext(e);
-		}
-
-		function errHandler(e) {
-			obs.onError(e);
-		}
-
-		function closeHandler(e) {
-			if (e.code !== 1000 || !e.wasClean) {
-				return obs.onError(e);
-			}
-			obs.onCompleted();
-		}
-
-		openObserver && socket.addEventListener('open', openHandler, false);
-		socket.addEventListener('message', messageHandler, false);
-		socket.addEventListener('error', errHandler, false);
-		socket.addEventListener('close', closeHandler, false);
-
-		return function () {
-			socketClose();
-
-			socket.removeEventListener('message', messageHandler, false);
-			socket.removeEventListener('error', errHandler, false);
-			socket.removeEventListener('close', closeHandler, false);
-		};
-	});
-
-	let observer = Rx.Observer.create(
-		function (data) {
-			socket && socket.readyState === WebSocket.prototype.OPEN && socket.send(data);
-		},
-		function (e) {
-			if (!e.code) {
-				throw new Error('no code specified. be sure to pass { code: ###, reason: "" } to onError()');
-			}
-			socketClose(e.code, e.reason || '');
-		},
-		function () {
-			socketClose(1000, '');
-		}
-	);
-
-	return Rx.Subject.create(observer, observable);
-}

@@ -35,8 +35,8 @@ app.get('/', (req, res) => {
 	res.send(html);
 });
 app.get('/forecastIoProxy', (req, res) => {
-	 let url = `https://api.forecast.io/forecast/${config.apiKeys.forecastIo}`;
-	 url += `/${config.weather.lat},${config.weather.long}`;
+	let url = `https://api.forecast.io/forecast/${config.apiKeys.forecastIo}`;
+	url += `/${config.weather.lat},${config.weather.long}`;
 	return rp(url)
 		.then(resp => res.send(resp));
 });
@@ -62,7 +62,7 @@ app.get('/calendar', (req, res) => {
 		});
 });
 app.get('/gAuth', (req, res) => {
-	const { code } = req.query;
+	const { code } = req.params;
 	console.log('code', code);
 	if (code) {
 		oAuthClient.getToken(code, (err, tokens) => {

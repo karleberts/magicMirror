@@ -1,11 +1,8 @@
 'use strict';
 const { Observable } = require('rxjs');
 const R = require('ramda');
-const rp = require('request-promise');
 const update = require('react-addons-update');
 const moment = require('moment');
-
-const qualifyUrl = require('../../libs/qualifyUrl');
 
 const FETCH_EVENTS = 'calendar/FETCH_EVENTS';
 const RECEIVE_EVENTS = 'calendar/RECEIVE_EVENTS';
@@ -33,19 +30,10 @@ function formatEvent (event) {
 	};
 }
 
-/**
- * Get a formatted event list using the proxy route
- * @returns {Promise.<T>|Promise<U>}
- */
-function getEvents () {
-	return rp(qualifyUrl('/calendar'))
-		.then(response => JSON.parse(response).items);
-}
-
-const formatAndReceive = R.pipe(R.map(formatEvent), receiveEvents);
+const formatAndReceive = R.pipe(resp => resp.response.items, R.map(formatEvent), receiveEvents);
 const fetchEventsEpic = action$ => action$
 	.filter(action => action.type === FETCH_EVENTS)
-	.flatMap(getEvents)
+	.flatMap(() => Observable.ajax({url: '/calendar', responseType: 'json'}))
 	.map(formatAndReceive)
 	.catch(err => Observable.of({type: FETCH_EVENTS, error: true, payload: err}));
 
