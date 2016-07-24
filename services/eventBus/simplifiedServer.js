@@ -25,7 +25,7 @@ function getEndpointIdFromConnection (ws) {
 	return query.endpointId;
 }
 
-const connectionStream = Rx.Subscriber.fromEvent(wss, 'connection');
+const connectionStream = Rx.Observable.fromEvent(wss, 'connection');
 
 connectionStream.subscribe(ws => {
 	const endpointId = getEndpointIdFromConnection(ws);

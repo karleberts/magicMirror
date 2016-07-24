@@ -11,8 +11,9 @@ const config = require('../../config.json');
 const PORT = config.ports.eventBus;
 const URL = 'ws://localhost:' + PORT + '/';
 const eventSource = new Rx.Subject();
+let messageQueue = new Rx.ReplaySubject();
 let messageId = 0;
-let sock;
+let sock = null;
 
 /**
  * Connect to the server using the specified endpoint id
@@ -22,14 +23,19 @@ let sock;
 function connect (endpointId) {
 	return new Promise((resolve, reject) => {
 		let url = getUrl(endpointId);
-		sock = fromWebsocket(url, null, Rx.Subscriber.create(() => resolve()));
+		sock = fromWebsocket(url, null, Rx.Subscriber.create(() => resolve(sock)));
 		sock.endpointId = endpointId;
 		sock.subscribe(Rx.Subscriber.create(
 			//try json parsing the event, should always work
 			evt => eventSource.next(JSON.parse(evt.data)),
 			err => { /*reconnect on error*/ },
-			() => console.log('disconnected')
+			() => {
+				console.log('disconnected');
+				messageQueue.complete();
+			}
 		));
+	}).then((sock) => {
+		messageQueue.subscribe(sendSocketMessage);
 	});
 }
 
@@ -41,6 +47,8 @@ function disconnect () {
 		throw new Error('Not connected');
 	}
 	sock.complete();
+	sock = null;
+	messageQueue = new Rx.ReplaySubject();
 }
 
 /**
@@ -60,30 +68,27 @@ function getUrl (endpointId) {
  */
 function subscribe(topic) {
 	let id = messageId++;
-	sendSocketMessage({
+	messageQueue.next({
 		method: 'subscribe',
 		id,
-		data: {
-			topic: topic
-		}
+		data: {topic}
 	});
 	return eventSource
 		.filter(evt => (
-			evt.method === 'subscription.response' &&
+			evt.method === 'subscription.received' &&
 			evt.id === id
 		))
 		.take(1)
-		//.timeout(10000)
 		.flatMap(() => eventSource
 			.filter(evt => (evt.method === 'message' &&
-				(!topic || evt.topic === topic)
+				(!topic || (evt.data && evt.data.topic === topic))
 			))
-		)
+		);
 }
 
 function unsubscribe (topic) {
 	let id = messageId++;
-	sendSocketMessage({
+	messageQueue.next({
 		method: 'unsubscribe',
 		id,
 		data: {
@@ -107,7 +112,7 @@ function unsubscribe (topic) {
  */
 function request (endpointId, topic, params) {
 	let id = messageId++;
-	sendSocketMessage({
+	messageQueue.next({
 		to: endpointId,
 		method: 'request',
 		id,
@@ -137,7 +142,7 @@ function request (endpointId, topic, params) {
  * @param {string} [to] - Optional endpoint id for directed messaging
  */
 function sendMessage (topic, message, to) {
-	sendSocketMessage({
+	messageQueue.next({
 		method: 'message',
 		to,
 		data: {
@@ -155,7 +160,7 @@ function sendSocketMessage(msg) {
 	msg = R.merge(msg, {
 		from: sock.endpointId
 	});
-	sock.next(JSON.stringify(msg))
+	sock.next(JSON.stringify(msg));
 }
 
 /**
@@ -178,7 +183,7 @@ let requestStream = eventSource
  * @param [params] - Response data
  */
 function respond (to, id, params) {
-	sendSocketMessage({
+	messageQueue.next({
 		method : 'request.response',
 		to : to,
 		id : id,

@@ -14,17 +14,12 @@ if (window.devToolsExtension) {
 }
 
 eventBus.connect('magicMirror.ui')
-	.then(() => {
-		const fooStream = eventBus.subscribe('faceDetect.result');
-		fooStream.subscribe(onFoo);
-	});
+	.then(() => console.log('connected to evtBus'));
+
 eventBus.requests.subscribe(({topic, params, respond}) => {
 	console.log('captured an evtBus req: ', arguments);
 	console.log(topic);
 });
-function onFoo (msg) {
-	console.log('received a foo, ', msg);
-}
 
 
 var container = document.getElementById('content');
