@@ -46,6 +46,7 @@
     "rx-react": "*",
     "rxjs": "^5.0.0-beta.10",
     "webpack": "*",
+    "webpack-dev-server": "^1.14.1",
     "ws": "^1.1.1"
   }
 }
