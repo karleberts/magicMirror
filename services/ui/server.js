@@ -35,14 +35,14 @@ app.get('/', (req, res) => {
 	res.send(html);
 });
 app.get('/forecastIoProxy', (req, res) => {
-	let url = `https://api.forecast.io/forecast/${config.apiKeys.forecastIo}`;
+	let url = `https://api.darksky.net/forecast/${config.apiKeys.forecastIo}`;
 	url += `/${config.weather.lat},${config.weather.long}`;
 	return rp(url)
 		.then(resp => res.send(resp));
 });
 app.get('/calendar', (req, res) => {
 	fs.readFileAsync(`${__dirname}/__gapi.json`, 'utf8')
-		.catch((err) => {
+		.catch(err => {
 			console.log('no auth info found, doing authentication.', err);
 			let url = oAuthClient.generateAuthUrl({
 				'access_type'	: 'offline',
@@ -51,9 +51,7 @@ app.get('/calendar', (req, res) => {
 			res.redirect(url);
 		})
 		.then(getCalendarEvents)
-		.then((events) => {
-			res.send(events);
-		})
+		.then(events => res.send(events))
 		.catch((err) => {
 			//TODO- send err over bus to err service
 			console.log(err);
@@ -70,9 +68,7 @@ app.get('/gAuth', (req, res) => {
 				console.log('error authenticating with google', err);
 			} else {
 				fs.writeFileAsync(`${__dirname}/__gapi.json`, JSON.stringify(tokens))
-					.then(() => {
-						res.redirect(`${UI_URI}/calendar`);
-					});
+					.then(() => res.redirect(`${UI_URI}/calendar`));
 			}
 		});
 	}
