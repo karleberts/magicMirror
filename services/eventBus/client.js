@@ -16,38 +16,46 @@ let messageId = 0;
 let sock = null;
 
 /**
+ * Generate a unique message ID for this endpoint
+ * @param endpointId {string}
+ */
+function getMessageId (endpointId) {
+	return `${endpointId}:${messageId++}`;
+}
+
+/**
  * Connect to the server using the specified endpoint id
  * @param {string} endpointId
  * @returns {Promise|any}
  */
 function connect (endpointId) {
 	return new Promise((resolve, reject) => {
-		let url = getUrl(endpointId);
+		const url = getUrl(endpointId);
 		sock = fromWebsocket(url, null, Rx.Subscriber.create(() => resolve(sock)));
 		sock.endpointId = endpointId;
 		sock.subscribe(Rx.Subscriber.create(
 			//try json parsing the event, should always work
 			evt => eventSource.next(JSON.parse(evt.data)),
-			err => { /*reconnect on error*/ },
+			err => { reject(err); /*TODO- reconnect on error*/ },
 			() => {
 				console.log('disconnected');
 				messageQueue.complete();
 			}
 		));
-	}).then((sock) => {
+	}).then(sock => {
 		messageQueue.subscribe(sendSocketMessage);
+		return sock;
 	});
 }
 
 /**
- * Disconnect a
+ * disconnect from the eventBus and reset
  */
 function disconnect () {
-	if (!sock) {
-		throw new Error('Not connected');
-	}
+	if (!sock) { throw new Error('Not connected'); }
 	sock.complete();
 	sock = null;
+	messageQueue.complete();
 	messageQueue = new Rx.ReplaySubject();
 }
 
@@ -66,8 +74,9 @@ function getUrl (endpointId) {
  * @param {string} topic - Message topic to subscribe to
  * @returns {Rx.Observable<TResult>} - Stream of messages for the given topic
  */
-function subscribe(topic) {
-	let id = messageId++;
+function subscribe (topic) {
+	if (!sock || !sock.endpointId) { throw Error('Not connected'); }
+	const id = getMessageId(sock.endpointId);
 	messageQueue.next({
 		method: 'subscribe',
 		id,
@@ -79,21 +88,23 @@ function subscribe(topic) {
 			evt.id === id
 		))
 		.take(1)
-		.flatMap(() => eventSource
-			.filter(evt => (evt.method === 'message' &&
-				(!topic || (evt.data && evt.data.topic === topic))
-			))
-		);
+		.flatMap(() => eventSource.filter(evt => (evt.method === 'message' &&
+			R.path(['data', 'topic'], evt) === topic)
+		));
 }
 
+/**
+ * unsubscribe from a previously subscribed topic
+ * @param topic
+ * @returns {Observable<T>}
+ */
 function unsubscribe (topic) {
-	let id = messageId++;
+	if (!sock || !sock.endpointId) { throw Error('Not connected'); }
+	const id = getMessageId(sock.endpointId);
 	messageQueue.next({
 		method: 'unsubscribe',
 		id,
-		data: {
-			topic: topic
-		}
+		data: {topic}
 	});
 	return eventSource
 		.filter(evt => (
@@ -111,7 +122,8 @@ function unsubscribe (topic) {
  * @returns {Observable|Rx.Observable<T>} - Response observable
  */
 function request (endpointId, topic, params) {
-	let id = messageId++;
+	if (!sock || !sock.endpointId) { throw Error('Not connected'); }
+	const id = getMessageId(sock.endpointId);
 	messageQueue.next({
 		to: endpointId,
 		method: 'request',
@@ -119,18 +131,11 @@ function request (endpointId, topic, params) {
 		data: {topic, params}
 	});
 	return eventSource
-		.filter(evt => (
-			evt.method === 'request.received' && evt.id === id
-		))
-		.take(1)
-		.flatMap(() => eventSource
-			.filter(evt => evt.method === 'request.response' && evt.from === endpointId && evt.id === id)
-		)
+		.filter(evt => evt.method === 'request.response' &&
+				evt.from === endpointId && evt.id === id)
 		.take(1)
 		.map(response => {
-			if (response.error) {
-				throw new Error(response.error);
-			}
+			if (response.error) { throw new Error(response.error); }
 			return response.data;
 		});
 }
@@ -167,12 +172,12 @@ function sendSocketMessage(msg) {
  * listen for requests on the socket
  * Exposed as exports.requests
  */
-let requestStream = eventSource
+const requestStream = eventSource
 	.filter(evt => (evt.method === 'request'))
 	.map(request => ({
 		topic: request.data.topic,
 		params: request.data.params,
-		respond: R.once(R.partial(respond, request.from, request.id))
+		respond: R.once(R.partial(respond, [request.from, request.id]))
 	}));
 
 /**

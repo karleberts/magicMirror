@@ -40,7 +40,8 @@ connectionStream.subscribe(ws => {
 	/**
 	 * Stream of all incoming socket messages
 	 */
-	const socketMessages = Rx.Observable.fromEvent(ws, 'message')
+	const socketMessages = Rx.Observable
+		.fromEvent(ws, 'message')
 		.map(msg => JSON.parse(msg))
 		.takeUntil(disconnectionStream)
 		.share();
@@ -93,7 +94,7 @@ connectionStream.subscribe(ws => {
 			console.log('adding a subscription');
 			if (req.type === 'subscribe') {
 				subscriptions[req.topic] = true;
-	 		} else {
+			} else {
 				delete subscriptions[req.topic];
 			}
 			return subscriptions;
@@ -106,12 +107,13 @@ connectionStream.subscribe(ws => {
 		.filter(msg => msg.method === 'message')
 		.withLatestFrom(
 			aggregateSubscriptionStream,
-			(message, subscriptions) => ({message, subscriptions}))
+			(message, subscriptions) => ({message, subscriptions})
+		)
 		.filter(p => {
 			const { message, subscriptions } = p;
 			return (message.from !== ws &&
-					(!message.to || message.to === endpointId) &&
-					subscriptions[message.data.topic]);
+				(!message.to || message.to === endpointId) &&
+				subscriptions[message.data.topic]);
 		})
 		.map(evt => evt.message);
 
@@ -127,7 +129,7 @@ connectionStream.subscribe(ws => {
 	 */
 	const requestResponseStream = messageStream
 		.filter(msg => (msg.method === 'request.response' &&
-				msg.to === endpointId));
+			msg.to === endpointId));
 
 	/**
 	 * Merge all the message streams the client needs to receive
@@ -146,3 +148,7 @@ connectionStream.subscribe(ws => {
 		ws.send(JSON.stringify(msg));
 	});
 });
+
+setTimeout(() => {
+	require('./echo');
+}, 0);
