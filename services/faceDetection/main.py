@@ -72,7 +72,7 @@ def start():
     print('connected to event bus')
     tests_messages = EVENT_BUS.subscribe('test')
     camera = PiCamera(resolution='320x240')
-    camera.start_preview();
+    # camera.start_preview();
     on_msg = get_msg_handler(camera)
     # tests_messages.subscribe(on_msg)
     time.sleep(1);
