@@ -12,6 +12,20 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+.ui-enter {
+	opacity: 0.01;
+	ui-enter-active {
+		opacity: 1;
+		transition: opacity 250ms ease-in;
+	}
+}
+.ui-leave {
+	opacity: 1;
+	.ui-leave-active {
+		opacity: 0.01;
+		transition: opacity 1000ms ease-in;
+	}
+}
 
 //weather stuff
 #weatherContainer {

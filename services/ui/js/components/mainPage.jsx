@@ -35,9 +35,9 @@ class Mirror extends React.Component {
 		return (
 			<Provider store={this.props.store}>
 				<ReactCSSTransitionGroup
-					transitionName="fadeIn"
-					transitionEnterTimeout={5000}
-					transitionLeaveTimeout={500}
+					transitionName="ui"
+					transitionEnterTimeout={250}
+					transitionLeaveTimeout={1000}
 				>
 					{this.state.visible &&
 						<div key="main">
