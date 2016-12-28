@@ -8,8 +8,9 @@ const R = require('ramda');
 
 const fromWebsocket = require('./libs/streamFromWebSocket');
 const config = require('../../config.json');
+const UI_HOSTNAME = config.uiHostname;
 const PORT = config.ports.eventBus;
-const URL = 'ws://magicmirror:' + PORT + '/';
+const URL = `ws://${UI_HOSTNAME}:${PORT}/`;
 const eventSource = new Rx.Subject();
 let messageQueue = new Rx.ReplaySubject();
 let messageId = 0;

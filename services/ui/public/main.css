@@ -12,11 +12,13 @@ body {
 
 #weatherContainer {
   position: absolute;
-  right: 0;
+  right: 8px;
   font-size: 64px;
   text-align: right; }
   #weatherContainer .sun {
     font-size: 66%; }
+    #weatherContainer .sun i.wi-sunset {
+      margin-left: 16px; }
     #weatherContainer .sun .moonPhase {
       margin-left: 14px; }
   #weatherContainer .current {
@@ -24,9 +26,14 @@ body {
     line-height: 128px;
     margin-top: -8px; }
     #weatherContainer .current .currentIcon {
-      font-size: 75%; }
+      font-size: 75%;
+      margin-right: 16px; }
     #weatherContainer .current .currentTemp {
-      display: inline-block; }
+      display: inline-block;
+      margin-right: 28px; }
+      #weatherContainer .current .currentTemp i.wi-degrees {
+        position: relative;
+        left: -4px; }
     #weatherContainer .current .hilo {
       display: inline-block;
       font-size: 40%;
@@ -36,6 +43,8 @@ body {
     margin-top: -8px;
     font-size: 85%;
     color: #aaa; }
+    #weatherContainer .upcoming .date {
+      margin-right: 32px; }
 
 #calendarContainer {
   position: absolute;
@@ -62,3 +71,4 @@ body {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap; }
+

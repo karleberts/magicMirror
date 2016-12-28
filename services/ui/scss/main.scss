@@ -30,11 +30,14 @@ body {
 //weather stuff
 #weatherContainer {
 	position: absolute;
-	right: 0;
+	right: 8px;
 	font-size: 64px;
 	text-align: right;
 	.sun {
 		font-size: 66%;
+		i.wi-sunset {
+			margin-left: 16px;
+		}
 		.moonPhase {
 			margin-left: 14px;
 		}
@@ -45,9 +48,15 @@ body {
 		margin-top: -8px;
 		.currentIcon {
 			font-size: 75%;
+			margin-right: 16px;
 		}
 		.currentTemp {
 			display: inline-block;
+			margin-right: 28px;
+			i.wi-degrees {
+				position: relative;
+				left: -4px;
+			}
 		}
 		.hilo {
 			display: inline-block;
@@ -60,6 +69,9 @@ body {
 		margin-top: -8px;
 		font-size: 85%;
 		color: #aaa;
+		.date {
+			margin-right: 32px;
+		}
 	}
 }
 

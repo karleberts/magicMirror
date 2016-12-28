@@ -8,7 +8,7 @@ const eventBus = require('../eventBus/client');
 
 const config = require('../../config.json');
 //TODO- make ramdisk on startup...or verify tor whatev
-const CAPTURE_PATH = '/Volumes/RAM Disk/snapshot.jpg';
+const CAPTURE_PATH = config.faceDetect.capture_path;
 const SLEEP_AFTER_FACE = config.faceDetect.sleep_after_face * 1000;
 const FACE_CHECK_INTVL = config.faceDetect.face_check_interval * 1000;
 function NoFaces () { }
@@ -16,7 +16,7 @@ NoFaces.prototype = Error.prototype;
 
 function captureImage () {
 	return new Promise((resolve, reject) => {
-		const imageCap = cp.spawn('imagesnap', ['-w', 1.5, CAPTURE_PATH]);
+		const imageCap = cp.spawn('raspistill', ['-vf', '-t', 1, '-o', CAPTURE_PATH]);
 		imageCap.on('close', code => {
 			if (code === 0) {
 				resolve();

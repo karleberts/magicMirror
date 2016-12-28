@@ -67,7 +67,7 @@ function startChromium () {
 	} else {
 		//we need to launch the browser
 		const browser = path.resolve('/usr/bin/chromium-browser');
-		const uri = `http://magicmirror:${config.ports.ui}`;
+		const uri = `http://${config.uiHostname}:${config.ports.ui}`;
 		const args = [
 			'--noerrdialogs',
 			'--disable-session-crashed-bubble',
