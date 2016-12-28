@@ -2,6 +2,7 @@
 const config = require('../../config.json');
 const PORT = config.ports.eventBus;
 
+const process = require('process');
 const url = require('url');
 const querystring = require('querystring');
 const Rx = require('rxjs');
@@ -151,4 +152,7 @@ connectionStream.subscribe(ws => {
 
 setTimeout(() => {
 	require('./echo');
+	if (process.send) {
+		process.send({ready: true});
+	}
 }, 0);
