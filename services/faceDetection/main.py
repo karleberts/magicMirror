@@ -77,6 +77,7 @@ def start():
     # tests_messages.subscribe(on_msg)
     time.sleep(1);
     timer.subscribe(on_msg);
+    EVENT_BUS.send_message('faceDetect.ready', True, 'magicMirror');
 
 def main():
     """kick this party off"""

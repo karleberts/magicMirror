@@ -1,5 +1,4 @@
 "use strict";
-
 const Promise = require('bluebird');
 const express = require('express');
 const Handlebars = require('handlebars');
@@ -13,6 +12,7 @@ const config = require('../../config.json');
 const ZIP_CODE = `${config.weather.zip},us`;
 const UI_PORT = config.ports.ui;
 const UI_URI = `http://localhost:${UI_PORT}`;
+const eventBus = require('../eventBus/client');
 
 const indexTmpl = Handlebars.compile(fs.readFileSync(`${__dirname}/index.hbs`, 'utf8'));
 
@@ -91,4 +91,10 @@ function getCalendarEvents (authContents) {
 }
 
 app.listen(UI_PORT);
+
+eventBus.connect('ui')
+	.then(() => {
+		eventBus.sendMessage('ui.ready', true, 'magicMirror');
+		eventBus.disconnect();
+	});
 console.log('listening');
