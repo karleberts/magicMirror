@@ -53,7 +53,6 @@ def connect(endpoint_id, callback):
 	query = urllib.urlencode({'endpointId': endpoint_id});
 	url = 'ws://localhost:{!s}/?{!s}'.format(port, query);
 	websocket_connect(url, None, _connect_callback, None, _on_message);
-	vars['message_queue'].subscribe(_send_socket_message);
 
 def disconnect():
 	if (vars['sock'] is None):
