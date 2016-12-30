@@ -2,6 +2,7 @@
 const cp = require('child_process');
 const path = require('path');
 const Promise = require('bluebird');
+const process = require('process');
 
 const config = require('../config.json');
 const eventBus = require('../services/eventBus/client');
@@ -34,11 +35,12 @@ const services = [{
 	endpointId: 'uiServer',
 }];
 
+let eventBusServer;
 function startEventBus () {
 	console.log('starting the event bus');
 	return new Promise((resolve, reject) => {
 		try {
-			const eventBus = cp.fork(paths.services.eventBus.server);
+			const eventBus = eventBusServer = cp.fork(paths.services.eventBus.server);
 			eventBus.on('message', msg => {
 				if (msg.ready) {
 					resolve();
@@ -96,7 +98,17 @@ function start () {
 		.catch(err => console.error(err));
 }
 
+process.on('SIGHUP', () => {
+	console.log('got SIGHUP, shutting down');
+	services.forEach(service.stop);
+	if (chromium) {
+		chromium.kill();
+	}
+	if (eventBusServer) {
+		eventBusServer.removeAllListeners('exit');
+		eventBusServer.kill();
+	}
+	process.exit();
+});
+
 start();
-
-
-	

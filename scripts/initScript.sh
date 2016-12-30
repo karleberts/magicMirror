@@ -10,7 +10,7 @@
 
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin
 DAEMON_PATH="/home/pi/src/magicmirror"
-DAEMON="su pi -lc '/home/pi/.nvm/versions/node/v6.6.0/bin/node /home/pi/src/magicmirror/scripts/start.js'"
+DAEMON="su pi -lc '/home/pi/.nvm/versions/node/v6.6.0/bin/node /home/pi/src/magicmirror/scripts/start.js '"
 
 NAME=magicMirror
 PIDFILE=/tmp/$NAME.pid
@@ -24,16 +24,8 @@ SCRIPTNAME=/etc/init.d/$NAME
 
 case "$1" in
   start)
-    log_begin_msg "Starting magicMirror: $DAEMON"
-	cd $DAEMON_PATH
-	$DAEMON > /tmp/magicMirror.log 2>&1
-	PID=$!
-		if [ -z $PID ]; then
-			printf "%s\n" "Fail"
-		else
-			echo $PID > $PIDFILE
-			printf "%s\n" "Ok"
-		fi
+    log_begin_msg "Starting magicMirror"
+	daemon --pidfile=/tmp/magicMirror.pid --user=pi --name=magicMirror /home/pi/.nvm/versions/node/v6.6.0/bin/node /home/pi/src/magicmirror/scripts/start.js
     log_end_msg $?
     exit 0
 ;;
