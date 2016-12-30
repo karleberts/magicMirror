@@ -85,6 +85,7 @@ def start():
     (Observable.merge(found_stream, not_found_stream)
      .distinct_until_changed()
      .subscribe(lambda res: EVENT_BUS.send_message('faceDetect.result', res)))
+    EVENT_BUS.send_message('faceDetect.ready', True, 'magicMirror');
 
 def main():
     """kick this party off"""
