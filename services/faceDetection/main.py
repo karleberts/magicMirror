@@ -23,7 +23,7 @@ CONFIG_FILE = open(os.path.join(DIRNAME, '..', '..', 'config.json'), 'r')
 CASCADE_PATH = os.path.join(DIRNAME, 'haarcascade_frontalface_default.xml')
 CONFIG = json.load(CONFIG_FILE)
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
-ENDPOINT_ID = 'magicMirror.faceDetect'
+ENDPOINT_ID = 'faceDetect'
 
 timer = Observable.interval(500);
 
@@ -36,7 +36,7 @@ def get_image_as_array(camera):
     image = raw_capture.array
     u = time.time()
     elapsed = u - t
-    print('{} capture'.format(elapsed))
+    # print('{} capture'.format(elapsed))
     return image
 def find_faces_in_image(image):
     """Find faces in the given opencv numpy array"""
@@ -44,12 +44,12 @@ def find_faces_in_image(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     u = time.time()
     elapsed = u - t
-    print('{} converting to gray'.format(elapsed))
+    # print('{} converting to gray'.format(elapsed))
     t = time.time()
     faces = FACE_CASCADE.detectMultiScale(gray)
     u = time.time()
     elapsed = u - t
-    print('{} searching faces'.format(elapsed))
+    # print('{} searching faces'.format(elapsed))
     return len(faces)
 def get_msg_handler(camera):
     def on_msg(msg):
@@ -62,22 +62,29 @@ def get_msg_handler(camera):
         except Exception:
             camera.close()
             sys.exit()
-        print("found {0} faces".format(face_count))
-        EVENT_BUS.send_message('faceDetect.result', (face_count > 0))
+        # print("found {0} faces".format(face_count))
+        return face_count > 0
     return on_msg
 
 
 def start():
     """Callback when event_bus connection succeeds"""
     print('connected to event bus')
-    tests_messages = EVENT_BUS.subscribe('test')
     camera = PiCamera(resolution='320x240')
     # camera.start_preview();
     on_msg = get_msg_handler(camera)
     # tests_messages.subscribe(on_msg)
-    time.sleep(1);
-    timer.subscribe(on_msg);
-    EVENT_BUS.send_message('faceDetect.ready', True, 'magicMirror');
+    time.sleep(1)
+    result_stream = (timer.map(on_msg)
+                     .share())
+    found_stream = (result_stream
+                    .filter(lambda x: x is True))
+    not_found_stream = (result_stream.scan(lambda acc, x: ([x] + acc)[:5], [])
+                        .filter(lambda buf: all(result is False for result in buf))
+                        .map(lambda res: False))
+    (Observable.merge(found_stream, not_found_stream)
+     .distinct_until_changed()
+     .subscribe(lambda res: EVENT_BUS.send_message('faceDetect.result', res)))
 
 def main():
     """kick this party off"""

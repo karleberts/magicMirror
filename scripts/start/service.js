@@ -3,37 +3,48 @@ const cp = require('child_process');
 
 const eventBus = require('../../services/eventBus/client');
 
-function restart (service) {
+function stopService (service) {
+	if (!service.child) { return; }
 	try {
+		service.child.removeAllListeners('exit');
 		service.child.kill();
 	} catch (e) {
 		console.error(e);
 	}
 	delete service.child;
+}
+
+function restart (service) {
+	console.log('restarting service', service.endpointId);
+	stopService(service);
 	return startService(service);
 }
 
 function startService (service) {
 	const {
 		args,
-		child,
 		cmd,
 		endpointId,
 		jsFile,
+		opts,
 	} = service;
-	if (child) { child.kill(); }
+	console.log('starting service', endpointId);
 	return new Promise((resolve, reject) => {
 		eventBus.subscribe(`${endpointId}.ready`)
 			.take(1)
 			.subscribe(
-				() => resolve(),
+				msg => {
+					console.log(`${endpointId} started`, msg);
+					resolve();
+				},
 				e => reject(e)
 			);
 			
 		if (jsFile) {
-			service.child = cp.fork(jsFile, args);
+			service.child = cp.fork(jsFile, args, opts);
 		} else {
-			service.child = cp.spawn(cmd, args);
+			console.log(cmd, args, opts);
+			service.child = cp.spawn(cmd, args, opts);
 		}
 		service.child.on('exit', () => restart(service));
 	});
@@ -42,4 +53,5 @@ function startService (service) {
 module.exports = {
 	restart,
 	start: startService,
+	stop: stopService,
 };

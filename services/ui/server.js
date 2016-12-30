@@ -92,9 +92,5 @@ function getCalendarEvents (authContents) {
 
 app.listen(UI_PORT);
 
-eventBus.connect('ui')
-	.then(() => {
-		eventBus.sendMessage('ui.ready', true, 'magicMirror');
-		eventBus.disconnect();
-	});
-console.log('listening');
+eventBus.connect('uiServer')
+	.then(() => eventBus.sendMessage('uiServer.ready', true, 'magicMirror'));

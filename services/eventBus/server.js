@@ -14,7 +14,6 @@ const WebSocketServer = require('ws').Server;
 const wss = new WebSocketServer({'port' : PORT});
 
 function notifyReceived (ws, method, id) {
-	console.log('sending notify over ws', method);
 	ws.send(JSON.stringify({method, id}));
 }
 
@@ -26,10 +25,12 @@ function getEndpointIdFromConnection (ws) {
 	return query.endpointId;
 }
 
-const connectionStream = Rx.Observable.fromEvent(wss, 'connection');
+const connectionStream = Rx.Observable
+	.fromEvent(wss, 'connection');
 
 connectionStream.subscribe(ws => {
 	const endpointId = getEndpointIdFromConnection(ws);
+	console.log(`${endpointId} connected`);
 	//can dispose of the underlying streams on disconnect by doing something
 	//in this stream's subscription? (not sure if necessary)
 	const disconnectionStream  = Rx.Observable.fromEvent(ws, 'close');
@@ -45,6 +46,7 @@ connectionStream.subscribe(ws => {
 		.fromEvent(ws, 'message')
 		.map(msg => JSON.parse(msg))
 		.takeUntil(disconnectionStream)
+		// .do(msg => console.log('incoming msg', msg))
 		.share();
 
 	/**
@@ -92,7 +94,6 @@ connectionStream.subscribe(ws => {
 	const aggregateSubscriptionStream = subscriptionStream
 		.merge(unsubStream)
 		.scan((subscriptions, req) => {
-			console.log('adding a subscription');
 			if (req.type === 'subscribe') {
 				subscriptions[req.topic] = true;
 			} else {
@@ -145,7 +146,6 @@ connectionStream.subscribe(ws => {
 
 	outgoingMessageStream.subscribe(msg => {
 		//send the message over the socket
-		console.log(msg);
 		ws.send(JSON.stringify(msg));
 	});
 });
