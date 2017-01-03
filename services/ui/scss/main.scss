@@ -1,5 +1,10 @@
 body {
 	background-color: #000;
+	position: absolute;
+	left: 9px;
+	right: -3px;
+	top: 10px;
+	bottom: 0;
 	.clear {
 		clear: both;
 	}
@@ -14,14 +19,14 @@ body {
 
 .ui-enter {
 	opacity: 0.01;
-	ui-enter-active {
+	&.ui-enter-active {
 		opacity: 1;
 		transition: opacity 250ms ease-in;
 	}
 }
 .ui-leave {
 	opacity: 1;
-	.ui-leave-active {
+	&.ui-leave-active {
 		opacity: 0.01;
 		transition: opacity 1000ms ease-in;
 	}
