@@ -135,6 +135,7 @@ function request (endpointId, topic, params) {
 		.filter(evt => evt.method === 'request.response' &&
 				evt.from === endpointId && evt.id === id)
 		.take(1)
+		.takeUntilWithTime(10000) //dispose of the response stream after 10s?
 		.map(response => {
 			if (response.error) { throw new Error(response.error); }
 			return response.data;

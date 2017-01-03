@@ -109,11 +109,12 @@ def request(target_endpoint, topic, params):
 		if (response['error'] is not None):
 			raise RuntimeError(response['error']);
 		return response['data'];
-	return event_source.filter(
-		lambda evt: evt['method'] == 'request.received' and evt['id'] == id
-	).take(1).select_many(
-		lambda x: event_source.filter(is_request_response)
-	).take(1).map(map_response_data);
+	return (event_source.filter(lambda evt: evt['method'] == 'request.received' and evt['id'] == id)
+			.take(1)
+			.select_many(lambda x: event_source.filter(is_request_response))
+			.take(1)
+			.take_until_with_time(10000)
+			.map(map_response_data));
 
 def send_message(topic, message, to=None):
 	vars['message_queue'].on_next({
