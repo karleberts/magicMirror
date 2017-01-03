@@ -29,7 +29,10 @@ const services = [{
 	cmd: paths.python,
 	args: [paths.services.faceDetection.main],
 	endpointId: 'faceDetect',
-	opts: {cwd: path.dirname(paths.services.faceDetection.main)},
+	opts: {
+		cwd: path.dirname(paths.services.faceDetection.main),
+		stdio: 'inherit',
+	},
 }, {
 	jsFile: paths.services.ui.server,
 	endpointId: 'uiServer',
@@ -75,16 +78,23 @@ function startChromium () {
 	} else {
 		//we need to launch the browser
 		const uri = `http://${config.uiHostname}:${config.ports.ui}`;
+		const cmd = '/usr/bin/chromium-browser';
 		const args = [
-			path.resolve(__dirname, 'start', 'startChromium.sh'),
+			// path.resolve(__dirname, 'start', 'startChromium.sh'),
+			'--incognito',
 			'--noerrdialogs',
 			'--disable-session-crashed-bubble',
 			'--disable-infobars',
-			// '--kiosk',
+			// '--auto-open-devtools-for-tabs',
+			'--kiosk',
+			'--no-first-run',
 			uri,
 		];
-		console.log('/bin/sh', args);
-		chromium = cp.spawn('/bin/sh', args);
+		console.log(cmd, args);
+		chromium = cp.spawn(cmd, args, {
+			stdio: 'inherit',
+			env: {DISPLAY: ':0.0'}
+		});
 	}
 	
 }
