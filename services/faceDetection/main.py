@@ -7,6 +7,7 @@ import json
 import imp
 # import io
 import os
+import signal
 import sys
 import time
 import cv2
@@ -67,11 +68,18 @@ def get_msg_handler(camera):
     return on_msg
 
 
+def stop(camera):
+    print('handling stop signal')
+    camera.close()
+    print('camera closed')
+    sys.exit()
+
 def start():
     """Callback when event_bus connection succeeds"""
     print('connected to event bus')
-    camera = PiCamera(resolution='320x240')
-    # camera.start_preview();
+    camera = PiCamera(resolution='480x360')
+    signal.signal(signal.SIGTERM, lambda sig, frame: stop(camera))
+    #camera.start_preview();
     on_msg = get_msg_handler(camera)
     # tests_messages.subscribe(on_msg)
     time.sleep(1)
@@ -86,6 +94,7 @@ def start():
      .distinct_until_changed()
      .subscribe(lambda res: EVENT_BUS.send_message('faceDetect.result', res)))
     EVENT_BUS.send_message('faceDetect.ready', True, 'magicMirror');
+
 
 def main():
     """kick this party off"""

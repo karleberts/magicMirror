@@ -5,6 +5,7 @@ Description=Magic Mirror services
 [Service]
 ExecStart=/home/pi/src/magicmirror/scripts/start.sh
 WorkingDirectory=/home/pi/src/magicmirror
+KillMode=process
 Restart=always
 RestartSec=10                       # Restart service after 10 seconds if node service crashes
 StandardOutput=syslog               # Output to syslog
