@@ -4,13 +4,13 @@ const path = require('path');
 const Promise = require('bluebird');
 const process = require('process');
 
-const config = require('../config.json');
-const eventBus = require('../services/eventBus/client');
-const service = require('./start/service');
+const config = require('./config.json');
+const eventBus = require('./services/eventBus/client');
+const serviceUtils = require('./services');
 
-const servicesDir = path.join(__dirname, '..', 'services');
+const servicesDir = path.join(__dirname, 'services');
 const paths = {
-	python: path.resolve(__dirname, '..', '..', '..', '.virtualenvs', 'cv', 'bin', 'python'),
+	python: path.resolve(__dirname, '..', '..', '.virtualenvs', 'cv', 'bin', 'python'),
 	services: {
 		eventBus: {
 			server: path.resolve(servicesDir, 'eventBus', 'server.js'),
@@ -65,7 +65,7 @@ function connectEventBus () {
 
 function startServices () {
 	console.log('starting the services');
-	return Promise.all(services.map(service.start));
+	return Promise.all(services.map(serviceUtils.start));
 }
 
 let chromium;
@@ -74,13 +74,12 @@ function startChromium () {
 	if (chromium) {
 		console.log('already running, forcing a refresh');
 		//already started, we can just refresh and be done
-		cp.exec(`/bin/sh ${path.resolve(__dirname, 'refreshChromium.sh')}`);
+		cp.exec(`/bin/sh ${path.resolve(__dirname, 'scripts', 'refreshChromium.sh')}`);
 	} else {
 		//we need to launch the browser
 		const uri = `http://${config.uiHostname}:${config.ports.ui}`;
 		const cmd = '/usr/bin/chromium-browser';
 		const args = [
-			// path.resolve(__dirname, 'start', 'startChromium.sh'),
 			'--incognito',
 			'--noerrdialogs',
 			'--disable-session-crashed-bubble',
@@ -100,7 +99,7 @@ function startChromium () {
 }
 
 function start () {
-	services.forEach(service.stop);
+	services.forEach(serviceUtils.stop);
 	startEventBus()
 		.then(connectEventBus)
 		.then(startServices)
@@ -108,9 +107,9 @@ function start () {
 		.catch(err => console.error(err));
 }
 
-process.on('SIGHUP', () => {
-	console.log('got SIGHUP, shutting down');
-	services.forEach(service.stop);
+process.on('SIGTERM', () => {
+	console.log('got kill signal, shutting down');
+	services.forEach(serviceUtils.stop);
 	if (chromium) {
 		chromium.kill();
 	}

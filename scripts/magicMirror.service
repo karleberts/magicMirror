@@ -3,7 +3,8 @@ Description=Magic Mirror services
 #Requires=After=mysql.service       # Requires the mysql service to run first
 
 [Service]
-ExecStart=/home/pi/.nvm/versions/node/v6.6.0/bin/node /home/pi/src/magicmirror/scripts/start.js
+ExecStart=/home/pi/src/magicmirror/scripts/start.sh
+WorkingDirectory=/home/pi/src/magicmirror
 Restart=always
 RestartSec=10                       # Restart service after 10 seconds if node service crashes
 StandardOutput=syslog               # Output to syslog

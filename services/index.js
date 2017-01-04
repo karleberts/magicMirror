@@ -1,7 +1,7 @@
 'use strict';
 const cp = require('child_process');
 
-const eventBus = require('../../services/eventBus/client');
+const eventBus = require('./eventBus/client');
 
 function stopService (service) {
 	if (!service.child) { return; }

@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "build-ui": "webpack services/ui/js/index.jsx services/ui/public/bundle.js",
-    "mocha": "mocha"
+    "mocha": "mocha",
+	"start": "node index.js"
   },
   "browser": {
     "ws": false
