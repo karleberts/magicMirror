@@ -32,6 +32,7 @@ const services = [{
 	opts: {
 		cwd: path.dirname(paths.services.faceDetection.main),
 		stdio: 'inherit',
+		env: {DISPLAY: ':0.0'}
 	},
 }, {
 	jsFile: paths.services.ui.server,
