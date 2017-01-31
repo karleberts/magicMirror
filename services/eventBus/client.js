@@ -1,18 +1,17 @@
-/* @flow weak */
 "use strict";
-/**
- * Created by Karl on 6/21/2015.
- */
 const Rx = require('rxjs');
 const R = require('ramda');
 
-const fromWebsocket = require('./libs/streamFromWebSocket');
+const WebsocketSubject = require('./libs/websocketSubject');
 const config = require('../../config.json');
+
 const UI_HOSTNAME = config.uiHostname;
 const PORT = config.ports.eventBus;
 const URL = `ws://${UI_HOSTNAME}:${PORT}/`;
-const eventSource = new Rx.Subject();
-let messageQueue = new Rx.ReplaySubject();
+const socketEvent$ = new Rx.Subject(); //incoming messages
+let outgoingMessage$ = new Rx.Subject(); //outgoing messages
+outgoingMessage$.subscribe(sendSocketMessage);
+let messageBuffer = [];
 let messageId = 0;
 let sock = null;
 
@@ -32,20 +31,22 @@ function getMessageId (endpointId) {
 function connect (endpointId) {
 	return new Promise((resolve, reject) => {
 		const url = getUrl(endpointId);
-		sock = fromWebsocket(url, null, Rx.Subscriber.create(() => resolve(sock)));
+		sock = new WebsocketSubject(url);
 		sock.endpointId = endpointId;
-		sock.subscribe(Rx.Subscriber.create(
-			//try json parsing the event, should always work
-			evt => eventSource.next(JSON.parse(evt.data)),
-			err => { reject(err); /*TODO- reconnect on error*/ },
-			() => {
-				console.log('disconnected');
-				messageQueue.complete();
-			}
-		));
-	}).then(sock => {
-		messageQueue.subscribe(sendSocketMessage);
-		return sock;
+		sock.subscribe(msg => socketEvent$.next(msg));
+		sock.connectionStatus
+			.take(1)
+			.subscribe(connectionStatus => {
+				if (connectionStatus) {
+					if (messageBuffer.length) {
+						messageBuffer.forEach(sendSocketMessage);
+						messageBuffer = [];
+					}
+					resolve(sock);
+				} else {
+					reject(connectionStatus);
+				}
+			});
 	});
 }
 
@@ -54,10 +55,9 @@ function connect (endpointId) {
  */
 function disconnect () {
 	if (!sock) { throw new Error('Not connected'); }
-	sock.complete();
+	sock.socket.complete();
+	sock.socket.unsubscribe();
 	sock = null;
-	messageQueue.complete();
-	messageQueue = new Rx.ReplaySubject();
 }
 
 /**
@@ -78,18 +78,18 @@ function getUrl (endpointId) {
 function subscribe (topic) {
 	if (!sock || !sock.endpointId) { throw Error('Not connected'); }
 	const id = getMessageId(sock.endpointId);
-	messageQueue.next({
+	outgoingMessage$.next({
 		method: 'subscribe',
 		id,
 		data: {topic}
 	});
-	return eventSource
+	return socketEvent$
 		.filter(evt => (
 			evt.method === 'subscription.received' &&
 			evt.id === id
 		))
 		.take(1)
-		.flatMap(() => eventSource.filter(evt => (evt.method === 'message' &&
+		.flatMap(() => socketEvent$.filter(evt => (evt.method === 'message' &&
 			R.path(['data', 'topic'], evt) === topic)
 		));
 }
@@ -102,12 +102,12 @@ function subscribe (topic) {
 function unsubscribe (topic) {
 	if (!sock || !sock.endpointId) { throw Error('Not connected'); }
 	const id = getMessageId(sock.endpointId);
-	messageQueue.next({
+	outgoingMessage$.next({
 		method: 'unsubscribe',
 		id,
 		data: {topic}
 	});
-	return eventSource
+	return socketEvent$
 		.filter(evt => (
 			evt.method === 'unsubscribe.response' &&
 			evt.id === id
@@ -125,13 +125,13 @@ function unsubscribe (topic) {
 function request (endpointId, topic, params) {
 	if (!sock || !sock.endpointId) { throw Error('Not connected'); }
 	const id = getMessageId(sock.endpointId);
-	messageQueue.next({
+	outgoingMessage$.next({
 		to: endpointId,
 		method: 'request',
 		id,
 		data: {topic, params}
 	});
-	return eventSource
+	return socketEvent$
 		.filter(evt => evt.method === 'request.response' &&
 				evt.from === endpointId && evt.id === id)
 		.take(1)
@@ -149,7 +149,7 @@ function request (endpointId, topic, params) {
  * @param {string} [to] - Optional endpoint id for directed messaging
  */
 function sendMessage (topic, message, to) {
-	messageQueue.next({
+	outgoingMessage$.next({
 		method: 'message',
 		to,
 		data: {
@@ -167,14 +167,18 @@ function sendSocketMessage(msg) {
 	msg = R.merge(msg, {
 		from: sock.endpointId
 	});
-	sock.next(JSON.stringify(msg));
+	if (sock) {
+		sock.send(msg);
+	} else {
+		messageBuffer.push(msg);
+	}
 }
 
 /**
  * listen for requests on the socket
  * Exposed as exports.requests
  */
-const requestStream = eventSource
+const requestStream = socketEvent$
 	.filter(evt => (evt.method === 'request'))
 	.map(request => ({
 		topic: request.data.topic,
@@ -190,7 +194,7 @@ const requestStream = eventSource
  * @param [params] - Response data
  */
 function respond (to, id, params) {
-	messageQueue.next({
+	outgoingMessage$.next({
 		method : 'request.response',
 		to : to,
 		id : id,

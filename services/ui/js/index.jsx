@@ -16,11 +16,6 @@ if (window.devToolsExtension) {
 eventBus.connect('magicMirror.ui')
 	.then(() => console.log('connected to evtBus'));
 
-eventBus.requests.subscribe(({topic, params, respond}) => {
-	console.log('captured an evtBus req: ', arguments);
-	console.log(topic);
-});
-
 
 var container = document.getElementById('content');
 render(<Mirror store={store} />, container);

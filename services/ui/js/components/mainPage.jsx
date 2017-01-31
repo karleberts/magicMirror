@@ -12,10 +12,27 @@ const Calendar = calendarContainer(require('../components/calendar.jsx'));
 class Mirror extends React.Component {
 	constructor (props) {
 		super(props);
-		this.state = {visible: false};
+		this._modeReq$ = eventBus.requests
+			.filter(req => req.topic === 'ui.setMode');
+		this._faceDetect$ = eventBus.subscribe('faceDetect.result');
+		this.state = {
+			visible: false,
+			mode: 'auto',
+		};
 	}
 
-	onFaceDetectMessage (msg) {
+	handleModeReq (mode) {
+		if (this.state.mode === mode) { return; }
+		const newState = {mode};
+		if (mode === 'visible') {
+			newState.visible = true;
+		} else if (mode === 'hidden') {
+			newState.visible = false;
+		}
+		this.setState(newState);
+	}
+
+	handleFaceDetectMessage (msg) {
 		const visible = msg.data.contents;
 		if (this.state.visible !== visible) {
 			this.setState({visible});
@@ -23,12 +40,14 @@ class Mirror extends React.Component {
 	}
 
 	componentWillMount () {
-		this._faceDetect$ = eventBus.subscribe('faceDetect.result') //unfortunate naming... (.subscribe.subscribe)
-			.subscribe(msg => this.onFaceDetectMessage(msg));
+		this._modeReq$.subscribe(req => this.handleModeReq(req.params));
+		this._faceDetect$.filter(() => this.state.mode === 'auto')
+			.subscribe((msg) => this.handleFaceDetectMessage(msg));
 	}
 
 	componentWillUnmount () {
 		this._faceDetect$.unsubscribe();
+		this._modeReq$.unsubscribe();
 	}
 
 	render () {

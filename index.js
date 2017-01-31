@@ -64,6 +64,10 @@ function connectEventBus () {
 	return eventBus.connect('magicMirror');
 }
 
+function startListeners () {
+	// message
+}
+
 function startServices () {
 	console.log('starting the services');
 	return Promise.all(services.map(serviceUtils.start));
@@ -86,6 +90,7 @@ function startChromium () {
 			'--disable-session-crashed-bubble',
 			'--disable-infobars',
 			// '--auto-open-devtools-for-tabs',
+			//'--remote-debugging-port=9222',
 			'--kiosk',
 			'--no-first-run',
 			uri,
@@ -103,6 +108,7 @@ function start () {
 	services.forEach(serviceUtils.stop);
 	startEventBus()
 		.then(connectEventBus)
+		//.then(startListeners)
 		.then(startServices)
 		.then(startChromium)
 		.catch(err => console.error(err));

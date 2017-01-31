@@ -126,11 +126,7 @@ def stop():
 #     print('testing a message')
 #     print(msg)
 
-def start():
-    """Callback when event_bus connection succeeds"""
-    print('connected to event bus')
-    #close the camera and kill the app on sigterm
-    signal.signal(signal.SIGTERM, lambda sig, frame: stop())
+def listen_for_pause():
     pause_stream = (EVENT_BUS.request_stream
                     .filter(lambda req: req['topic'] == 'faceDetect.pause')
                     .map(lambda req: req['params'])
@@ -144,6 +140,14 @@ def start():
     (pause_stream
      .filter(lambda is_paused: is_paused is True)
      .subscribe(lambda is_pause: close_camera()))
+    return pause_stream
+
+def start():
+    """Callback when event_bus connection succeeds"""
+    print('connected to event bus')
+    #close the camera and kill the app on sigterm
+    signal.signal(signal.SIGTERM, lambda sig, frame: stop())
+    pause_stream = listen_for_pause()
     time.sleep(1)
     result_stream = (timer
                      .with_latest_from(pause_stream, lambda x, is_paused: is_paused)
