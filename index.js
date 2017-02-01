@@ -10,6 +10,7 @@ const eventBus = {
 	server: require('./lib/eventBus/server'),
 };
 const serviceUtils = require('./services');
+const updateCloudflare = require('./lib/cloudflareUpdater');
 
 const servicesDir = path.join(__dirname, 'services');
 const paths = {
@@ -92,6 +93,11 @@ function startChromium () {
 	
 }
 
+function updateDynamicDns () {
+	Promise.resolve(updateCloudflare())
+		.finally(() => setTimeout(updateDynamicDns, (1000 * 60 * 10))); //do this every 10 min
+}
+
 function start () {
 	services.forEach(serviceUtils.stop);
 	startEventBus();
@@ -99,6 +105,7 @@ function start () {
 	startListeners();
 	startServices();
 	startChromium();
+	updateDynamicDns();
 }
 
 process.on('SIGTERM', () => {
