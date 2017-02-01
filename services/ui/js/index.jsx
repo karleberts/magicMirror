@@ -6,7 +6,7 @@ const { render } = require('react-dom');
 const Mirror = require('./components/mainPage.jsx');
 const configureStore = require('./redux/configureStore');
 //TODO- global ref
-const eventBus = window.eb = require('../../eventBus/client');
+const eventBus = window.eb = require('../../../lib/eventBus/client');
 
 const store = configureStore();
 if (window.devToolsExtension) {

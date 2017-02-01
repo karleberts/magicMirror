@@ -19,7 +19,7 @@ from rx.subjects import Subject
 from rx import Observable
 
 DIRNAME = os.path.dirname(__file__)
-EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', 'eventBus', 'client.py'))
+EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', 'lib', 'eventBus', 'client.py'))
 CONFIG_FILE = open(os.path.join(DIRNAME, '..', '..', 'config.json'), 'r')
 CASCADE_PATH = os.path.join(DIRNAME, 'haarcascade_frontalface_default.xml')
 CONFIG = json.load(CONFIG_FILE)

@@ -3,7 +3,7 @@ const React = require('react');
 const { Provider } = require('react-redux');
 const ReactCSSTransitionGroup = require('react-addons-css-transition-group');
 
-const eventBus = require('../../../eventBus/client');
+const eventBus = require('../../../../lib/eventBus/client');
 const weatherContainer = require('../containers/weather');
 const Weather = weatherContainer(require('../components/weather.jsx'));
 const calendarContainer = require('../containers/calendar');

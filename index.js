@@ -5,7 +5,10 @@ const Promise = require('bluebird');
 const process = require('process');
 
 const config = require('./config.json');
-const eventBus = require('./services/eventBus/client');
+const eventBus = {
+	client: require('./lib/eventBus/client'),
+	server: require('./lib/eventBus/server'),
+};
 const serviceUtils = require('./services');
 
 const servicesDir = path.join(__dirname, 'services');
@@ -39,33 +42,18 @@ const services = [{
 	endpointId: 'uiServer',
 }];
 
-let eventBusServer;
 function startEventBus () {
 	console.log('starting the event bus');
-	return new Promise((resolve, reject) => {
-		try {
-			const eventBus = eventBusServer = cp.fork(paths.services.eventBus.server);
-			eventBus.on('message', msg => {
-				if (msg.ready) {
-					resolve();
-				}
-			});
-			//restart errything if the message bus stops
-			eventBus.on('exit', start);
-		} catch (e) {
-			console.error(e);
-			reject(e);
-		}
-	});
+	return eventBus.server.createServer();
 }
 
 function connectEventBus () {
 	console.log('connecting eventBus');
-	return eventBus.connect('magicMirror');
+	return eventBus.client.connect('magicMirror');
 }
 
 function startListeners () {
-	// message
+	require('./services/messageHandlers');
 }
 
 function startServices () {
@@ -106,12 +94,11 @@ function startChromium () {
 
 function start () {
 	services.forEach(serviceUtils.stop);
-	startEventBus()
-		.then(connectEventBus)
-		//.then(startListeners)
-		.then(startServices)
-		.then(startChromium)
-		.catch(err => console.error(err));
+	startEventBus();
+	connectEventBus();
+	startListeners();
+	startServices();
+	startChromium();
 }
 
 process.on('SIGTERM', () => {
@@ -119,10 +106,6 @@ process.on('SIGTERM', () => {
 	services.forEach(serviceUtils.stop);
 	if (chromium) {
 		chromium.kill();
-	}
-	if (eventBusServer) {
-		eventBusServer.removeAllListeners('exit');
-		eventBusServer.kill();
 	}
 	process.exit();
 });

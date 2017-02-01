@@ -4,15 +4,16 @@ const express = require('express');
 const Handlebars = require('handlebars');
 const rp = require('request-promise');
 const fs = Promise.promisifyAll(require('fs'));
-const querystring = require('querystring');
+// const querystring = require('querystring');
 const google = require('googleapis');
 const moment = require('moment');
+const http = require('http');
 
 const config = require('../../config.json');
-const ZIP_CODE = `${config.weather.zip},us`;
+// const ZIP_CODE = `${config.weather.zip},us`;
 const UI_PORT = config.ports.ui;
 const UI_URI = `http://localhost:${UI_PORT}`;
-const eventBus = require('../eventBus/client');
+const eventBus = require('../../lib/eventBus/client');
 
 const indexTmpl = Handlebars.compile(fs.readFileSync(`${__dirname}/index.hbs`, 'utf8'));
 
@@ -90,7 +91,8 @@ function getCalendarEvents (authContents) {
 	return Promise.promisify(calendar.events.list)(apiParams);
 }
 
-app.listen(UI_PORT);
+const httpServer = http.createServer(app);
+httpServer.listen(UI_PORT);
 
 eventBus.connect('uiServer')
 	.then(() => eventBus.sendMessage('uiServer.ready', true, 'magicMirror'));
