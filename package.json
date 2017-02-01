@@ -4,7 +4,7 @@
   "scripts": {
     "build-ui": "webpack services/ui/js/index.jsx services/ui/public/bundle.js",
     "mocha": "mocha",
-	"start": "node index.js"
+    "start": "node index.js"
   },
   "browser": {
     "ws": false
@@ -30,6 +30,7 @@
     "json-loader": "*",
     "mocha": "*",
     "moment": "^2.14.1",
+    "node-fetch": "^1.6.3",
     "node-sass": "^3.8.0",
     "ramda": "^0.21.0",
     "react": "^15.2.1",
