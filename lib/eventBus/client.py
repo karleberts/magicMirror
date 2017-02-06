@@ -50,6 +50,13 @@ def connect(endpoint_id, callback):
             VARS['sock'] = params.result()
             VARS['endpoint_id'] = endpoint_id
             VARS['message_queue'].subscribe(_send_socket_message)
+            VARS['message_queue'].on_next({
+                'method': 'message',
+                'data': {
+                    'topic': 'auth',
+                    'contents': CONFIG['eventBus']['secret']
+                }
+            })
             for msg in VARS['message_buffer']:
                 VARS['message_queue'].on_next(msg)
             VARS['message_buffer'] = []

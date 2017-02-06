@@ -13,7 +13,6 @@ import time
 import cv2
 from picamera.array import PiRGBArray
 from picamera import PiCamera
-import picamera
 from tornado import ioloop
 from rx.subjects import Subject
 from rx import Observable
