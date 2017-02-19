@@ -103,8 +103,8 @@ function start () {
 	startEventBus();
 	connectEventBus();
 	startListeners();
-	startServices();
-	startChromium();
+	startServices()
+		.then(() => startChromium());
 	updateDynamicDns();
 }
 
