@@ -1,0 +1,21 @@
+{
+  "name": "event-bus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "querystring": "^0.2.0",
+    "ramda": "^0.23.0",
+    "rxjs": "^5.1.0",
+    "uws": "^0.12.0"
+  },
+  "react-native": {
+	  "ws": false,
+	  "uws": false
+  }
+}
