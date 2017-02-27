@@ -3,12 +3,12 @@ const cp = require('child_process');
 const path = require('path');
 const Promise = require('bluebird');
 const process = require('process');
+const eventBus = {
+	client: require('event-bus/client'),
+	server: require('event-bus/server'),
+};
 
 const config = require('./config.json');
-const eventBus = {
-	client: require('./lib/eventBus/client'),
-	server: require('./lib/eventBus/server'),
-};
 const serviceUtils = require('./services');
 const updateCloudflare = require('./lib/cloudflareUpdater');
 
@@ -103,9 +103,9 @@ function start () {
 	startEventBus();
 	connectEventBus();
 	startListeners();
+	updateDynamicDns();
 	startServices()
 		.then(() => startChromium());
-	updateDynamicDns();
 }
 
 process.on('SIGTERM', () => {

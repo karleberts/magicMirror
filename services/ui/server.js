@@ -8,12 +8,12 @@ const fs = Promise.promisifyAll(require('fs'));
 const google = require('googleapis');
 const moment = require('moment');
 const http = require('http');
+const eventBus = require('event-bus/client');
 
 const config = require('../../config.json');
 // const ZIP_CODE = `${config.weather.zip},us`;
 const UI_PORT = config.ports.ui;
 const UI_URI = `http://localhost:${UI_PORT}`;
-const eventBus = require('../../lib/eventBus/client');
 
 const indexTmpl = Handlebars.compile(fs.readFileSync(`${__dirname}/index.hbs`, 'utf8'));
 

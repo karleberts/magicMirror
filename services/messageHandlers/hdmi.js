@@ -1,7 +1,6 @@
 'use strict';
 const { execSync } = require('child_process');
-
-const { requests } = require('../../lib/eventBus/client');
+const { requests } = require('event-bus/client');
 
 function sleepHdmi () {
 	execSync('tvservice -o', err => {
