@@ -1,6 +1,4 @@
-/**
- * Created by karl on 7/31/15.
- */
+const webpack = require('webpack');
 
 module.exports = {
 	module: {
@@ -15,5 +13,8 @@ module.exports = {
 		fs: 'empty',
 		net: 'empty',
 		tls: 'empty'
-	}
+	},
+	plugins: [
+		new webpack.IgnorePlugin(/^uws$/)
+	]
 };

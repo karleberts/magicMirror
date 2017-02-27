@@ -20,6 +20,7 @@
     "eslint": "^3.1.1",
     "eslint-plugin-lodash": "^1.10.0",
     "eslint-plugin-react": "^5.2.2",
+    "event-bus": "git+https://bitbucket.org/karleberts/eventbus.git",
     "express": "^4.14.0",
     "google-client-api": "*",
     "googleapis": "^12.0.0",
