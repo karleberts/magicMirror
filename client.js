@@ -6,8 +6,6 @@ const WebsocketSubject = require('./websocketSubject');
 const config = require('../../config.json');
 
 const UI_HOSTNAME = config.uiHostname;
-const PORT = config.ports.eventBus;
-const URL = `ws://${UI_HOSTNAME}:${PORT}/`;
 const socketEvent$ = new Rx.Subject(); //incoming messages
 let outgoingMessage$ = new Rx.Subject(); //outgoing messages
 outgoingMessage$.subscribe(sendSocketMessage);
@@ -29,9 +27,9 @@ function getMessageId (endpointId) {
  * @param {string} _url - override local url (for app connection)
  * @returns {Promise|any}
  */
-function connect (endpointId, _url) {
+function connect (endpointId, useSsl) {
 	return new Promise((resolve, reject) => {
-		const url = _url || getUrl(endpointId);
+		const url = getUrl(endpointId, useSsl);
 		sock = new WebsocketSubject(url);
 		sock.endpointId = endpointId;
 		sock.subscribe(msg => socketEvent$.next(msg));
@@ -69,7 +67,9 @@ function disconnect () {
  * @param endpointId
  * @returns {*}
  */
-function getUrl (endpointId) {
+function getUrl (endpointId, useSsl) {
+	const PORT = (useSsl) ? config.ports.eventBus : config.ports.eventBusSsl;
+	const URL = `ws://${UI_HOSTNAME}:${PORT}/`;
 	endpointId = encodeURIComponent(endpointId);
 	return `${URL}?endpointId=${endpointId}`;
 }
