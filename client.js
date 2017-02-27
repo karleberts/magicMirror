@@ -68,7 +68,7 @@ function disconnect () {
  * @returns {*}
  */
 function getUrl (endpointId, useSsl) {
-	const PORT = (useSsl) ? config.ports.eventBus : config.ports.eventBusSsl;
+	const PORT = (useSsl) ? config.ports.eventBusSsl : config.ports.eventBus;
 	const URL = `ws://${UI_HOSTNAME}:${PORT}/`;
 	endpointId = encodeURIComponent(endpointId);
 	return `${URL}?endpointId=${endpointId}`;
