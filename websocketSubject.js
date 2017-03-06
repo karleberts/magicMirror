@@ -1,7 +1,10 @@
 'use strict';
 const Rx = require('rxjs');
 
-const WebSocketCtor = (WebSocket || (window && window.WebSocket)) || require('ws');
+const WebSocketCtor = (
+	(typeof Websocket !== 'undefined' && WebSocket) ||
+	(typeof window !== 'undefined' && window && window.WebSocket)
+) || require('ws');
 
 /// by default, when a message is received from the server, we are trying to decode it as JSON
 /// we can override it in the constructor
