@@ -51,7 +51,7 @@ function handleConnection (client) {
 	 */
 	const socketMessages = Rx.Observable
 		.fromEvent(client, 'message')
-		.map(msg => JSON.parse(msg))
+		.map(msg => JSON.parse(msg.data))
 		.takeUntil(disconnectionStream)
 		// .do(msg => console.log('incoming msg', msg))
 		.share();
