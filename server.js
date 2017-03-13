@@ -160,15 +160,16 @@ function handleConnection (client) {
 function checkAuth (client) {
 	return Rx.Observable.fromEvent(client, 'message')
 		.take(1)
-		.flatMap(data => {
+		.flatMap(evt => {
 			try {
-				const msg = JSON.parse(data);
+				const msg = JSON.parse(evt.data);
 				console.log(msg);
 				if (msg.data.topic === 'auth' &&
 						msg.data.contents === config.eventBus.secret) {
 					return Rx.Observable.of(client);
 				}
 			} catch (e) {
+				console.error('error parsing auth msg data');
 			}
 			client.close();
 			return Rx.Observable.throw(Error('Unable to authenticate'));
