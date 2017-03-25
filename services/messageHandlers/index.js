@@ -1,8 +1,5 @@
 'use strict';
 
 
-const hdmi = require('./hdmi');
-
-module.exports = {
-	hdmi,
-};
+require('./hdmi');
+require('./mode');
