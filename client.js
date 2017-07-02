@@ -33,6 +33,10 @@ function connect (endpointId, useSsl) {
 		sock = new WebsocketSubject(url);
 		sock.endpointId = endpointId;
 		sock.subscribe(msg => socketEvent$.next(msg));
+		Rx.Observable
+			.interval(50000)
+			.withLatestFrom(sock.connectionStatus)
+			.subscribe(([i, isConnected]) => isConnected && ping());
 		sock.connectionStatus
 			.take(1)
 			.subscribe(connectionStatus => {
@@ -60,6 +64,17 @@ function disconnect () {
 	sock.socket.complete();
 	sock.socket.unsubscribe();
 	sock = null;
+}
+
+/**
+ * ping the server
+ */
+function ping () {
+	sendMessage('ping', null);
+	outgoingMessage$.next({
+		method: 'ping',
+		data: null
+	});
 }
 
 /**

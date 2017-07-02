@@ -57,6 +57,16 @@ function handleConnection (client) {
 		.share();
 
 	/**
+	 * ping/pong for socket keepalive
+	 * client pings, server pongs
+	 */
+	socketMessages
+		.filter(msg => msg.method === 'ping')
+		.subscribe(() => client.send(JSON.stringify({
+			method: 'pong'
+		})));
+
+	/**
 	 * rebroadcast regular messages to all subscribed parties
 	 * e.g. {method: 'message', data: {message: {foo: 'bar}}}
 	 */
