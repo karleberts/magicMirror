@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import json
 import urllib
@@ -44,7 +45,7 @@ def connect(endpoint_id, callback):
     """get started"""
     def _connect_callback(params):
         if params.exception() is not None:
-            print params.exception()
+            print(params.exception())
             #TODO- reconnect on err...
         else:
             VARS['sock'] = params.result()
@@ -169,7 +170,7 @@ def respond(recipient, msg_id, params):
 def map_req_to_req_stream(request):
     """incoming requests get mapped to the request stream"""
     topic = request['data']['topic']
-    params = request['data']['params']
+    params = request['data'].setdefault('params')
     @once
     def _respond(params):
         return respond(request['from'], request['id'], params)
