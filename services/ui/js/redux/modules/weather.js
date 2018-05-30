@@ -106,17 +106,16 @@ const forecastUrl = '/forecastIoProxy';
 const formatAndReceive = R.pipe(R.prop('response'), format, receiveWeather);
 const fetchWeatherEpic = action$ => action$
 	.filter(action => action.type === FETCH_WEATHER)
+	.throttle(() => Observable.interval(600000))
 	.flatMap(() => Observable.ajax({url: forecastUrl, responseType: 'json'}))
 	.map(formatAndReceive)
 	.catch(err => Observable.of({type: FETCH_WEATHER, error: true, payload: err}));
 
-const timer = Observable.interval(10000)
-	.startWith(true);
-
 const monitorWeatherEpic = action$ => action$
 	.ofType(MONITOR_WEATHER)
-	.flatMap(() => timer)
-	.takeUntil(action$.ofType(ABORT_MONITOR))
+	.flatMap(() => Observable
+		.interval(600000).startWith(true)
+		.takeUntil(action$.ofType(ABORT_MONITOR)))
 	.map(fetchWeather);
 
 function weatherReducer (state = initialState, action) {

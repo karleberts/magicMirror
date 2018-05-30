@@ -1,15 +1,56 @@
 'use strict';
 const React = require('react');
-const { Provider } = require('react-redux');
-const ReactCSSTransitionGroup = require('react-addons-css-transition-group');
+
 import * as eventBus from 'event-bus/client';
+import DefaultView from './default.jsx';
+import HideUntilFace from './hideUntilFace.jsx';
+// import Picture from './picture.jsx';
 
-//const eventBus = require('../../../../lib/eventBus/cl');
-const weatherContainer = require('../containers/weather');
-const Weather = weatherContainer(require('../components/weather.jsx'));
-const calendarContainer = require('../containers/calendar');
-const Calendar = calendarContainer(require('../components/calendar.jsx'));
+export default class Mirror extends React.Component {
+	constructor (props) {
+		super(props);
+		this.state = {
+			mode: 'auto',
+		};
+	}
 
+	handleModeReq (mode) {
+		if (this.state.mode === mode) { return; }
+		this.setState({mode});
+	}
+
+	componentWillMount () {
+		this._modeReq$ = eventBus.requests
+			.do(msg => console.log('debug', msg))
+			.filter(req => req.topic === 'ui.setMode')
+			.startWith('auto')
+			.subscribe(req => this.handleModeReq(req.params));
+		eventBus.subscribe('webrtc.invite')
+			.subscribe(msg => )
+	}
+
+	componentWillUnmount () {
+		this._modeReq$.unsubscribe();
+	}
+
+	render () {
+		switch (this.state.mode) {
+		case 'visible':
+			return <DefaultView {...this.props} />;
+		case 'hidden':
+			return null;
+		case 'picture':
+			// return <Picture />;
+		// case 'webrtc':
+		// 	return <WebRTC />
+		case 'auto':
+		default:
+			return <HideUntilFace Component={<DefaultView {...this.props} />} />;
+		}
+	}
+}
+
+/*
 class Mirror extends React.Component {
 	constructor (props) {
 		super(props);
@@ -53,23 +94,10 @@ class Mirror extends React.Component {
 
 	render () {
 		return (
-			<Provider store={this.props.store}>
-				<ReactCSSTransitionGroup
-					transitionName="ui"
-					transitionEnterTimeout={250}
-					transitionLeaveTimeout={1000}
-				>
-					{this.state.visible &&
-						<div key="main">
-							<Weather visible={this.state.visible} />
-							<Calendar visible={this.state.visible} />
-						</div>
-					}
-				</ReactCSSTransitionGroup>
-			</Provider>
 		);
 	}
 }
+*/
 Mirror.propTypes = {
 	store: React.PropTypes.object,
 	visible: React.PropTypes.bool,
