@@ -11,7 +11,25 @@ const rootEpic = combineEpics(
 	monitorWeatherEpic
 );
 
+const SET_MODE = 'SET_MODE';
+const initialState = {
+	mode: 'auto',
+	data: null,
+};
+function modeReducer (state = initialState, action) {
+	switch (action.type) {
+	case SET_MODE:
+		return {
+			mode: action.payload.mode,
+			data: action.payload.data || null,
+		};
+	default:
+		return state;
+	}
+}
+
 const rootReducer = combineReducers({
+	mode: modeReducer,
 	calendar: calendarReducer,
 	weather: weatherReducer,
 });

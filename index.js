@@ -31,7 +31,7 @@ const paths = {
 
 const services = [{
 	cmd: paths.python,
-	args: [paths.services.faceDetection.main],
+	args: ['-u', paths.services.faceDetection.main],
 	endpointId: 'faceDetect',
 	opts: {
 		cwd: path.dirname(paths.services.faceDetection.main),
@@ -62,33 +62,48 @@ function startServices () {
 	return Promise.all(services.map(serviceUtils.start));
 }
 
-let chromium;
-function startChromium () {
-	console.log('starting chromium');
-	if (chromium) {
+let browserInst;
+function startBrowser () {
+	console.log('starting browser for UI');
+	if (browserInst) {
 		console.log('already running, forcing a refresh');
 		//already started, we can just refresh and be done
 		cp.exec(`/bin/sh ${path.resolve(__dirname, 'scripts', 'refreshChromium.sh')}`);
 	} else {
 		//we need to launch the browser
-		const uri = `http://${config.uiHostname}:${config.ports.ui}`;
-		const cmd = '/usr/bin/chromium-browser';
+		const uri = `https://${config.uiHostname}:${config.ports.ui}`;
+		// const cmd = '/usr/bin/chromium-browser';
+		// const args = [
+		// 	'--incognito',
+		// 	'--noerrdialogs',
+		// 	'--disable-session-crashed-bubble',
+		// 	'--disable-infobars',
+		// 	// '--auto-open-devtools-for-tabs',
+		// 	'--remote-debugging-port=9222',
+		// 	'--ignore-certificate-errors',
+		// 	'--kiosk',
+		// 	'--no-first-run',
+		// 	uri,
+		// ];
+
+		//a bug with the RPi camera & Chromium's interface w/ UV4L2 cameras
+		// (like the rpi cam module, see (https://bugs.chromium.org/p/chromium/issues/detail?id=616007)
+		//means we need to use this old version of firefox for now
+		//FTR the working firefox version (in this release) is 45.9.0
+		const cmd = '/usr/bin/firefox-esr';
 		const args = [
-			'--incognito',
-			'--noerrdialogs',
-			'--disable-session-crashed-bubble',
-			'--disable-infobars',
-			// '--auto-open-devtools-for-tabs',
-			//'--remote-debugging-port=9222',
-			'--kiosk',
-			'--no-first-run',
-			uri,
+			// '-new-window',
+			//'--start-debugger-server',
+			`${uri}`
 		];
+
 		console.log(cmd, args);
-		chromium = cp.spawn(cmd, args, {
-			stdio: 'inherit',
+		browserInst = cp.spawn(cmd, args, {
 			env: {DISPLAY: ':0.0'}
 		});
+		eventBus.client
+			.subscribe('ui.ready')
+			.subscribe(() => cp.exec('/usr/bin/xdotool key F11', {env: {DISPLAY: ':0.0'}}));
 	}
 	
 }
@@ -98,6 +113,17 @@ function updateDynamicDns () {
 		.finally(() => setTimeout(updateDynamicDns, (1000 * 60 * 10))); //do this every 10 min
 }
 
+function handleServiceRestartRequest (req) {
+}
+
+function listenForServiceRestartRequests () {
+	eventBus.client.requests
+		.filter(req => req.topic === 'service.restart' &&
+				services.filter(s => s.endpointId === req.params.endpointId).length)
+		.subscribe(handleServiceRestartRequest);
+
+}
+
 function start () {
 	services.forEach(serviceUtils.stop);
 	startEventBus();
@@ -105,14 +131,17 @@ function start () {
 	startListeners();
 	updateDynamicDns();
 	startServices()
-		.then(() => startChromium());
+		.then(() => {
+			listenForServiceRestartRequests();
+			startBrowser();
+		});
 }
 
 process.on('SIGTERM', () => {
 	console.log('got kill signal, shutting down');
 	services.forEach(serviceUtils.stop);
-	if (chromium) {
-		chromium.kill();
+	if (browserInst) {
+		browserInst.kill();
 	}
 	process.exit();
 });

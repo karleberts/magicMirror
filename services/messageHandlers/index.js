@@ -1,8 +1,11 @@
 'use strict';
 
 
-const hdmi = require('./hdmi');
+const { requests } = require('event-bus/client');
 
-module.exports = {
-	hdmi,
-};
+require('./hdmi');
+require('./mode');
+
+requests
+	.filter(req => req.topic === 'magicMirror.restart' && !req.params)
+	.subscribe(() => process.kill(process.pid, 'SIGTERM'));

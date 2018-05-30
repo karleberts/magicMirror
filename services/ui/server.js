@@ -7,8 +7,9 @@ const fs = Promise.promisifyAll(require('fs'));
 // const querystring = require('querystring');
 const google = require('googleapis');
 const moment = require('moment');
-const http = require('http');
+const https = require('https');
 const eventBus = require('event-bus/client');
+const path = require('path');
 
 const config = require('../../config.json');
 // const ZIP_CODE = `${config.weather.zip},us`;
@@ -91,7 +92,11 @@ function getCalendarEvents (authContents) {
 	return Promise.promisify(calendar.events.list)(apiParams);
 }
 
-const httpServer = http.createServer(app);
+const options = {
+	key: fs.readFileSync(path.resolve(__dirname, './ws.key')),
+	cert: fs.readFileSync(path.resolve(__dirname, './ws.crt')),
+};
+const httpServer = https.createServer(options, app);
 httpServer.listen(UI_PORT);
 
 eventBus.connect('uiServer')

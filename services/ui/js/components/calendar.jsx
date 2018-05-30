@@ -19,6 +19,23 @@ class Calendar extends React.Component {
 		this.props.fetchEvents();
 	}
 
+	componentDidMount () {
+		this.updateInterval = window.setInterval(() => {
+			const m = moment();
+			this.setState({
+				dateTime: {
+					date: m.format('dddd MMMM Do'),
+					time: m.format('h:mm'),
+				}
+			});
+		}, 30000);
+
+	}
+
+	componentWillUnmount () {
+		window.clearInterval(this.updateInterval);
+	}
+
 	render () {
 		const events = this.props.events.map(event => (
 			<li key={event.id}>
