@@ -1,0 +1,17 @@
+{
+  "name": "empty-project-template",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios"
+  },
+  "dependencies": {
+    "react": "16.4.1",
+    "react-native": "0.56.1",
+    "react-native-navigation": "1.x.x"
+  },
+  "devDependencies": {
+    "babel-preset-react-native-stage-0": "^1.0.1"
+  }
+}
