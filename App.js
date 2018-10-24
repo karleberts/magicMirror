@@ -1,21 +1,40 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Navigation } from 'react-native-navigation';
+import { Provider } from 'react-redux';
 
-export default class App extends React.Component {
-  render() {
-    return (
-      <View style={styles.container}>
-        <Text>Open up App.js to start working on your app!</Text>
-      </View>
-    );
-  }
-}
+import createStore from './js/redux/createStore';
+import { connect, STATUSES as CONNECTION_STATUSES } from './js/redux/reducers/connection';
+import { registerScreens, screenIds } from './js/screens';
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+const store = createStore();
+registerScreens(store, Provider);
+Navigation.startTabBasedApp({
+	tabs: [{
+		icon: require('./js/images/home.png'),
+		label: 'Actions',
+		screen: screenIds.actions,
+	}, {
+		icon: require('./js/images/phone.png'),
+		label: 'Video Call',
+		screen: screenIds.videoCall,
+	}],
 });
+
+let connectionStatus;
+store.subscribe(() => {
+	const state = store.getState();
+	if (state.connection.status !== connectionStatus) {
+		if (state.connection.status !== CONNECTION_STATUSES.connected) {
+			Navigation.showModal({
+				screen: screenIds.connectionStatusPopup,
+				passProps: {status: state.connection.status},
+			});
+		} else {
+			Navigation.dismissAllModals();
+		}
+	}
+});
+
+store.dispatch(connect());
+
+
+

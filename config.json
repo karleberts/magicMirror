@@ -1,0 +1,37 @@
+{
+	"uiHostname": "magicmirror.karleberts.com",
+	"apiKeys": {
+		"cloudflare": "ce149f86e3e0092cd6ae0050d62f2be029461",
+		"openWeatherMap": "a89073c8789947a7ba36be55d7d38ae6",
+		"forecastIo": "d3cdbe7fe54a0449e1c42c0a194e92b0",
+		"google": {
+			"apiKey": "AIzaSyAHSY4zF0KSuOUfApOV7S8zsdth7vcGpSA",
+			"clientId": "421838294046-10q447cd0m2551utr7afjpu5l5u71hhf.apps.googleusercontent.com",
+			"clientSecret": "UmFISw6ak9ahqqo78DT3e-mB",
+			"calendarId": "638892262m954f57lan6ra4u7k@group.calendar.google.com"
+		}
+	},
+	"eventBus": {
+		"secret": "E51DD9914BA0DB2549782CB94DD9F05503D2CDC5505C7B35E49DD450BDB48FA4"
+	},
+	"weather": {
+		"lat": "32.754175",
+		"long": "-117.149015"
+	},
+	"faceDetect": {
+		"capture_path": "/dev/shm/snapshot.jpg",
+		"sleep_after_face": 1,
+		"face_check_interval": 1
+	},
+	"ports": {
+		"ui": 8090,
+		"eventBus": 8091,
+		"eventBusSsl": 2053
+	},
+	"cloudflare": {
+		"domain": "magicmirror.karleberts.com",
+		"dns_rec_id": "8b8fb531edd1d6cb8b50c61507b06e3c",
+		"zone_id": "75164a28213ae6079eaa59c6be38369e",
+		"email": "karl.eberts@gmail.com"
+	}
+}
