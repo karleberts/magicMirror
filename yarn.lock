@@ -3221,7 +3221,7 @@ promise@^7.1.1:
   dependencies:
     asap "~2.0.3"
 
-prop-types@^15.5.8, prop-types@^15.6.0:
+prop-types@^15.5.10, prop-types@^15.5.8, prop-types@^15.6.0:
   version "15.6.2"
   resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.6.2.tgz#05d5ca77b4453e985d60fc7ff8c859094a497102"
   dependencies:
@@ -3273,6 +3273,14 @@ react-native-navigation@1.x.x:
   resolved "https://registry.yarnpkg.com/react-native-navigation/-/react-native-navigation-1.1.491.tgz#54b40fd8520c41026dff35e7def4aad855d55cfb"
   dependencies:
     lodash "4.x.x"
+
+react-native-webrtc@^1.67.1:
+  version "1.67.1"
+  resolved "https://registry.yarnpkg.com/react-native-webrtc/-/react-native-webrtc-1.67.1.tgz#19c20f7f5fa3fe6c6e893922c0338233835f45b4"
+  dependencies:
+    base64-js "^1.1.2"
+    event-target-shim "^1.0.5"
+    prop-types "^15.5.10"
 
 react-native@0.56.1:
   version "0.56.1"
