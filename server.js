@@ -22,12 +22,14 @@ const https = require('https');
 //stream of 'message' type messages
 const messageBus = new Rx.Subject();
 
+const disconnect$ = new Rx.Subject();
+
 function notifyReceived (ws, method, id) {
 	ws.send(JSON.stringify({method, id}));
 }
 
 function getEndpointIdFromConnection (ws) {
-	const query = querystring.parse(url.parse(ws.upgradeReq.url).query || '');
+	const query = querystring.parse(url.parse(ws.reqUrl).query || '');
 	if (!query || !query.endpointId) {
 		throw new Error('No endpoint', query);
 	}
@@ -41,6 +43,13 @@ function handleConnection (client) {
 	//can dispose of the underlying streams on disconnect by doing something
 	//in this stream's subscription? (not sure if necessary)
 	const disconnectionStream  = Rx.Observable.fromEvent(client, 'close');
+	disconnectionStream.subscribe(() => disconnect$.next(endpointId));
+
+	if (endpointId === 'debug') {
+		return messageBus
+			.takeUntil(disconnectionStream)
+			.subscribe(msg => client.send(JSON.stringify(msg)));
+	}
 
 	const messageStream = messageBus
 		.takeUntil(disconnectionStream)
@@ -161,13 +170,13 @@ function handleConnection (client) {
 			requestResponseStream
 		);
 
-	outgoingMessageStream.subscribe(msg => {
+	return outgoingMessageStream.subscribe(msg => {
 		//send the message over the socket
 		client.send(JSON.stringify(msg));
 	});
 }
 
-function checkAuth (client) {
+function checkAuth ([client, req]) {
 	return Rx.Observable.fromEvent(client, 'message')
 		.take(1)
 		.flatMap(evt => {
@@ -176,6 +185,7 @@ function checkAuth (client) {
 				console.log(msg);
 				if (msg.data.topic === 'auth' &&
 						msg.data.contents === config.eventBus.secret) {
+					client.reqUrl = req.url;
 					return Rx.Observable.of(client);
 				}
 			} catch (e) {
@@ -205,12 +215,13 @@ function createServer () {
 	// }, 0);
 
 	return Rx.Observable
-		.fromEvent(wss, 'connection')
-		.merge(Rx.Observable.fromEvent(ws, 'connection'))
+		.fromEvent(wss, 'connection', Array.of)
+		.merge(Rx.Observable.fromEvent(ws, 'connection', Array.of))
 		.flatMap(checkAuth)
 		.subscribe(handleConnection);
 }
 
 module.exports = {
 	createServer,
+	disconnect$,
 };
