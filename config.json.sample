@@ -1,0 +1,37 @@
+{
+	"uiHostname": "magicmirror",
+	"apiKeys": {
+		"cloudflare": "ihttps://support.cloudflare.com/hc/en-us/articles/200167836-Where-do-I-find-my-Cloudflare-API-key-",
+		"openWeatherMap": "https://openweathermap.org/appid",
+		"forecastIo": "https://darksky.net/dev",
+		"google": {
+			"apiKey": "",
+			"clientId": "",
+			"clientSecret": "",
+			"calendarId": ""
+		}
+	},
+	"eventBus": {
+		"secret": "some_hash_here"
+	},
+	"weather": {
+		"lat": "50.00",
+		"long": "50.00"
+	},
+	"faceDetect": {
+		"capture_path": "/dev/shm/snapshot.jpg",
+		"sleep_after_face": 1,
+		"face_check_interval": 1
+	},
+	"ports": {
+		"ui": 8090,
+		"eventBus": 8091,
+		"eventBusSsl": 2053
+	},
+	"cloudflare": {
+		"domain": "magicmirror.example.com",
+		"dns_rec_id": "",
+		"zone_id": "",
+		"email": "karl@example.com"
+	}
+}
