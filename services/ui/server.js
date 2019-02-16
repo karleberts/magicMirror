@@ -10,6 +10,7 @@ const moment = require('moment');
 const https = require('https');
 const eventBus = require('event-bus/client');
 const path = require('path');
+const cp = require('child_process');
 
 const config = require('../../config.json');
 // const ZIP_CODE = `${config.weather.zip},us`;
@@ -92,12 +93,34 @@ function getCalendarEvents (authContents) {
 	return Promise.promisify(calendar.events.list)(apiParams);
 }
 
+function playVideo (msg) {
+	//hack - should get the real path or stream it
+	const src = path.join(__dirname, 'public', msg.params.src);
+	const cmd = '/usr/bin/omxplayer';
+	const args = [
+		'--win', '0,5,1080,1925',
+		src
+	];
+	console.log(cmd, args);
+	const proc = cp.spawn(cmd, args, {
+		env: {DISPLAY: ':0.0'}
+	});
+	proc.on('exit', () => {
+		console.log('proc done, responding');
+		msg.respond(true);
+	});
+}
+
 const options = {
 	key: fs.readFileSync(path.resolve(__dirname, './ws.key')),
 	cert: fs.readFileSync(path.resolve(__dirname, './ws.crt')),
 };
 const httpServer = https.createServer(options, app);
 httpServer.listen(UI_PORT);
+
+eventBus.requests
+	.filter(req => req.topic === 'video.play')
+	.subscribe(playVideo);
 
 eventBus.connect('uiServer')
 	.then(() => eventBus.sendMessage('uiServer.ready', true, 'magicMirror'));

@@ -28,7 +28,9 @@ CAMERA_INST = None
 RAW_CAPTURE = None
 CAPTURE_INTERVAL = 350
 FRAME_COUNT_UNTIL_FALSE = 15 # num. of frames to see 0 faces in until emitting a 'not found' result (~5s?)
-SHOW_CV = False;
+SHOW_CV = False
+LIGHT_CHECK_COUNT = 0
+AVG_PIXEL_THRESHOLD = 40; # avg value of gray image, below which we will pause face detection and disable the screen
 
 timer = Observable.interval(CAPTURE_INTERVAL)
 
@@ -43,11 +45,10 @@ def get_image_as_array(camera):
     # elapsed = u - t
     # print('{} capture'.format(elapsed))
     return image
-def find_faces_in_image(image):
+def find_faces_in_image(gray):
     """Find faces in the given opencv numpy array"""
     global SHOW_CV
     # t = time.time()
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # u = time.time()
     # elapsed = u - t
     # print('{} converting to gray'.format(elapsed))
@@ -56,7 +57,7 @@ def find_faces_in_image(image):
         gray,
         scaleFactor=1.1,
         minNeighbors=4,
-        minSize=(30, 30)
+        minSize=(35, 35)
     )
     if SHOW_CV:
         for (x, y, w, h) in faces:
@@ -67,7 +68,16 @@ def find_faces_in_image(image):
     # elapsed = u - t
     # print('{} searching faces'.format(elapsed))
     return len(faces)
-def do_face_check():
+def check_image_brightness(gray):
+    global LIGHT_CHECK_COUNT
+    if LIGHT_CHECK_COUNT > 30:
+        LIGHT_CHECK_COUNT = 0
+        return cv2.mean(gray) < AVG_PIXEL_THRESHOLD
+    else:
+        LIGHT_CHECK_COUNT = LIGHT_CHECK_COUNT + 1
+        return False
+    
+def get_and_process_image():
     """event_bus message handler"""
     global RAW_CAPTURE
     global SHOW_CV
@@ -75,7 +85,9 @@ def do_face_check():
     camera = get_camera()
     try:
         image = get_image_as_array(camera)
-        face_count = find_faces_in_image(image)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        check_image_brightness(gray)
+        face_count = find_faces_in_image(gray)
         RAW_CAPTURE.truncate(0)
         if SHOW_CV:
             camera.annotate_text = ('analog_gain: {}, brightness: {}, contrast: {}, exposure_speed: {}, faces: {}'
@@ -170,14 +182,14 @@ def start():
     signal.signal(signal.SIGTERM, lambda sig, frame: stop())
     pause_stream = listen_for_pause()
     time.sleep(1)
-    last_result = False;
+    last_result = False
     def handle_result(res):
-        last_result = res;
+        last_result = res
         EVENT_BUS.send_message('faceDetect.result', res)
     result_stream = (timer
                      .with_latest_from(pause_stream, lambda x, is_paused: is_paused)
                      .filter(lambda is_paused: is_paused is not True)
-                     .map(lambda x: do_face_check())
+                     .map(lambda x: get_and_process_image())
                      .share())
     found_stream = (result_stream
                     .filter(lambda x: x is True))

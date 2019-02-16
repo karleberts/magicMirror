@@ -21,7 +21,7 @@ const actions = {
  * @returns {{date: *, time: *, summary: (*|summary|any|string|books.summary|string)}}
  */
 function formatEvent (event) {
-	const startMoment = moment(event.start.dateTime);
+	const startMoment = moment(event.start.date);
 	return {
 		id: event.id,
 		date: startMoment.format('M/D'),

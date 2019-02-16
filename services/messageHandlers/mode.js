@@ -35,6 +35,14 @@ function show () {
 	sendMessage('ui.modeChanged', 'visible');
 }
 
+function painting () {
+	state.mode = 'painting';
+	wakeHdmi();
+	request('magicMirror.ui', 'ui.setMode', 'painting');
+	request('faceDetect', 'faceDetect.pause', false);
+	sendMessage('ui.modeChanged', 'painting');
+}
+
 
 function pic (data) {
 	const { src } = data;
@@ -58,6 +66,8 @@ function set (mode, data) {
 			return hide();
 		case 'picture':
 			return pic(data);
+		case 'painting':
+			return painting();
 		}
 	}
 }
