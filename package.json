@@ -21,7 +21,7 @@
     "eslint": "^3.19.0",
     "eslint-plugin-lodash": "^1.10.0",
     "eslint-plugin-react": "^5.2.2",
-    "event-bus": "git+https://bitbucket.org/karleberts/eventbus.git",
+    "event-bus": "1.0.0",
     "express": "^4.14.0",
     "extract-text-webpack-plugin": "^2.1.2",
     "file-loader": "^0.11.2",
