@@ -4,7 +4,7 @@ const React = require('react');
 const { render } = require('react-dom');
 const eventBus = window.eb = require('event-bus/client');
 
-import '../scss/main.scss';
+// import '../scss/main.scss';
 const Mirror = require('./components/mainPage.jsx');
 const configureStore = require('./redux/configureStore');
 //TODO- global ref

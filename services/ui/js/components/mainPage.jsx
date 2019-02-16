@@ -5,6 +5,7 @@ import * as eventBus from 'event-bus/client';
 import DefaultView from './default.jsx';
 import HideUntilFace from './hideUntilFace.jsx';
 // import Picture from './picture.jsx';
+import Painting from './painting.jsx';
 
 export default class Mirror extends React.Component {
 	constructor (props) {
@@ -25,8 +26,8 @@ export default class Mirror extends React.Component {
 			.filter(req => req.topic === 'ui.setMode')
 			.startWith('auto')
 			.subscribe(req => this.handleModeReq(req.params));
-		eventBus.subscribe('webrtc.invite')
-			.subscribe(msg => )
+		// eventBus.subscribe('webrtc.invite')
+		// 	.subscribe(msg => )
 	}
 
 	componentWillUnmount () {
@@ -39,10 +40,12 @@ export default class Mirror extends React.Component {
 			return <DefaultView {...this.props} />;
 		case 'hidden':
 			return null;
-		case 'picture':
+		// case 'picture':
 			// return <Picture />;
 		// case 'webrtc':
 		// 	return <WebRTC />
+		case 'painting':
+			return <Painting/>;
 		case 'auto':
 		default:
 			return <HideUntilFace Component={<DefaultView {...this.props} />} />;
