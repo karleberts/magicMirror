@@ -26,5 +26,3 @@ You'll also need API keys to get the weather and calendar displays working.
 * Install the systemd service to run the mirror:  `sudo cp /home/pi/src/magicmirror/scripts/magicMirror.service /etc/systemd/system`
 * Reboot
 * You should see the pi boot to the desktop, then after a minute a firefox should open up, navigate to the mirror app, and fullscreen itself. If you step away from the camera for ~10s, then back into view you should see the UI fade into view.
-
-

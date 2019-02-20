@@ -1,0 +1,90 @@
+body {
+  background-color: #000;
+  position: absolute;
+  left: 9px;
+  right: -3px;
+  top: 10px;
+  bottom: 0; }
+  body .clear {
+    clear: both; }
+
+#content {
+  color: #fff;
+  font-size: 24px;
+  font-family: "HelveticaNeue-Light";
+  letter-spacing: -2px;
+  -webkit-font-smoothing: antialiased; }
+
+.ui-enter {
+  opacity: 0.01; }
+  .ui-enter.ui-enter-active {
+    opacity: 1;
+    transition: opacity 250ms ease-in; }
+
+.ui-leave {
+  opacity: 1; }
+  .ui-leave.ui-leave-active {
+    opacity: 0.01;
+    transition: opacity 1000ms ease-in; }
+
+#weatherContainer {
+  position: absolute;
+  right: 8px;
+  font-size: 64px;
+  text-align: right; }
+  #weatherContainer .sun {
+    font-size: 66%; }
+    #weatherContainer .sun i.wi-sunset {
+      margin-left: 16px; }
+    #weatherContainer .sun .moonPhase {
+      margin-left: 14px; }
+  #weatherContainer .current {
+    font-size: 215%;
+    line-height: 128px;
+    margin-top: -8px; }
+    #weatherContainer .current .currentIcon {
+      font-size: 75%;
+      margin-right: 16px; }
+    #weatherContainer .current .currentTemp {
+      display: inline-block;
+      margin-right: 28px; }
+      #weatherContainer .current .currentTemp i.wi-degrees {
+        position: relative;
+        left: -4px; }
+    #weatherContainer .current .hilo {
+      display: inline-block;
+      font-size: 40%;
+      line-height: 32px;
+      margin-left: -20px; }
+  #weatherContainer .upcoming {
+    margin-top: -8px;
+    font-size: 85%;
+    color: #aaa; }
+    #weatherContainer .upcoming .date {
+      margin-right: 32px; }
+
+#calendarContainer {
+  position: absolute;
+  left: 0;
+  font-size: 64px; }
+  #calendarContainer .date {
+    font-size: 66%; }
+  #calendarContainer .time {
+    font-size: 200%;
+    line-height: 128px;
+    margin-top: -8px; }
+  #calendarContainer ul.events {
+    color: #aaa;
+    list-style: none;
+    font-size: 45%;
+    margin: 0;
+    padding: 0; }
+    #calendarContainer ul.events li span {
+      float: left;
+      margin-left: 5px; }
+    #calendarContainer ul.events li .eventSummary {
+      display: inline-block;
+      max-width: 232px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap; }
