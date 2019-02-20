@@ -22,9 +22,8 @@ export default class Mirror extends React.Component {
 
 	componentWillMount () {
 		this._modeReq$ = eventBus.requests
-			.do(msg => console.log('debug', msg))
 			.filter(req => req.topic === 'ui.setMode')
-			.startWith('auto')
+			.startWith({params: 'auto'})
 			.subscribe(req => this.handleModeReq(req.params));
 		// eventBus.subscribe('webrtc.invite')
 		// 	.subscribe(msg => )

@@ -1,5 +1,5 @@
 {
-	"uiHostname": "magicmirror",
+	"uiHostname": "localhost",
 	"apiKeys": {
 		"cloudflare": "ihttps://support.cloudflare.com/hc/en-us/articles/200167836-Where-do-I-find-my-Cloudflare-API-key-",
 		"openWeatherMap": "https://openweathermap.org/appid",

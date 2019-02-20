@@ -1,0 +1,10 @@
+backports-abc==0.4
+certifi==2016.9.26
+funcy==1.7.1
+numpy==1.10.4
+picamera==1.12
+ptvsd==2.2.0
+Rx==1.5.3
+singledispatch==3.4.0.3
+six==1.10.0
+tornado==4.4.2

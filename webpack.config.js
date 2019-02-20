@@ -11,9 +11,8 @@ module.exports = {
 		path: path.join(__dirname, './services/ui/public/'),
 	},
 	module: {
-		loaders: [
+		rules: [
 			{test: /\.jsx?$/, loader: 'babel-loader'},
-			{test: /\.json$/, loader: 'json-loader'},
 			{test: /\.hbs$/, loader: 'handlebars-loader'},
 			{
 				test: /\.(eot|svg|ttf|woff|woff2)$/,
@@ -33,14 +32,14 @@ module.exports = {
 			},
 		],
 	},
-	devtool: 'inline-source-map',
+	devtool: 'source-map',
 	node: {
 		fs: 'empty',
 		net: 'empty',
 		tls: 'empty'
 	},
 	plugins: [
-		new ExtractTextPlugin({filename: 'extractedFromBundle.css', allChunks: true}),
+		// new ExtractTextPlugin({filename: 'extractedFromBundle.css', allChunks: true}),
 		new webpack.IgnorePlugin(/^uws$/)
 	]
 };
