@@ -1,6 +1,4 @@
 node_modules
-services/ui/public/bundle.js
-services/ui/public/main.css
-services/ui/public/bundle.js.map
+services/ui/public
 .idea
 certs
