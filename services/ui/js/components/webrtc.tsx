@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 
 import * as eventBus from 'event-bus/client';
-import Peer from 'simple-peer';
+// import Peer from 'simple-peer';
 
 export default class WebRTC extends React.Component {
 	componentDidMount () {

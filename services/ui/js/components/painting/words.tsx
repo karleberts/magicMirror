@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 const phrases = [
 	'kill kill kill',
@@ -16,7 +16,7 @@ const CASES = [
 	String.prototype.toLowerCase
 ];
 
-function getRandomFromArray (arr) {
+function getRandomFromArray (arr: Array<any>) {
 	return arr[Math.floor(Math.random() * arr.length)];
 }
 
@@ -26,7 +26,7 @@ const fonts = [
 	"'Love Ya Like A Sister', cursive",
 ];
 
-const randomCase = str => str.split('')
+const randomCase = (str: string) => str.split('')
 	.map(letter => getRandomFromArray(CASES).call(letter))
 	.join('');
 
@@ -35,7 +35,7 @@ function getContainerStyle () {
 		fontFamily: getRandomFromArray(fonts),
 		fontSize: Math.floor(Math.random() * 10 + 90),
 		color: '#fff',
-		position: 'absolute',
+		position: 'absolute' as 'absolute',
 		top: 0,
 		left: 0,
 		width: '100%',
@@ -43,22 +43,30 @@ function getContainerStyle () {
 	};
 }
 
-function getWordStyle (index, phraseLength) {
+function getWordStyle (index: number, phraseLength: number) {
 	const heightPct = Math.floor(1 / phraseLength * 100);
 	const direction = (Math.random() > 0.5) ? 'right' : 'left';
 	return {
-		position: 'fixed',
+		position: 'fixed' as 'fixed',
 		top: `${Math.min(Math.random() * heightPct + (index * heightPct), 70)}%`,
 		[direction]: `${Math.floor(Math.random() * 50)}%`,
 		transform: `rotate(${Math.random() * 40 - 20}deg) scale(1.3)`,
 		display: 'inline-block',
 		padding: 32,
-		boxSizing: 'border-box',
+		boxSizing: 'border-box' as 'border-box',
 	};
 }
 
-class Words extends React.PureComponent {
-	constructor (props){
+interface IWordsProps {
+    onEnded(): void
+}
+interface IWordsState {
+    index: number,
+}
+class Words extends React.PureComponent<IWordsProps, IWordsState> {
+    containerStyle: any;
+    words: Array<string>;
+	constructor (props: IWordsProps){
 		super(props);
 		this.containerStyle = getContainerStyle();
 		this.words = randomCase(getRandomFromArray(phrases))

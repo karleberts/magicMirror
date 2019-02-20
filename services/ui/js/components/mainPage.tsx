@@ -1,51 +1,68 @@
-'use strict';
-const React = require('react');
+import * as React from 'react';
+import { Observable, Subscription } from 'rxjs';
+import {
+    filter,
+    startWith,
+} from 'rxjs/operators';
 
-import * as eventBus from 'event-bus/client';
-import DefaultView from './default.jsx';
-import HideUntilFace from './hideUntilFace.jsx';
+import eventBus from 'event-bus/client';
+import DefaultView from './default';
+import HideUntilFace from './hideUntilFace';
 // import Picture from './picture.jsx';
-import Painting from './painting.jsx';
+import Painting from './painting';
 
-export default class Mirror extends React.Component {
-	constructor (props) {
+interface IMirrorProps {
+    store: any,
+}
+enum mirrorMode {
+    auto = 'auto',
+    painting = 'painting',
+    visible = 'visible',
+    hidden = 'hidden'
+}
+interface IMirrorState {
+    mode: mirrorMode
+}
+export default class Mirror extends React.Component<IMirrorProps, IMirrorState> {
+    _modeReq$?: Subscription;
+	constructor (props: IMirrorProps) {
 		super(props);
 		this.state = {
-			mode: 'auto',
+			mode: mirrorMode.visible,
 		};
 	}
 
-	handleModeReq (mode) {
+	handleModeReq (mode: mirrorMode) {
 		if (this.state.mode === mode) { return; }
 		this.setState({mode});
 	}
 
 	componentWillMount () {
-		this._modeReq$ = eventBus.requests
-			.filter(req => req.topic === 'ui.setMode')
-			.startWith({params: 'auto'})
-			.subscribe(req => this.handleModeReq(req.params));
+		this._modeReq$ = eventBus.requests.pipe(
+		    filter(req => req.topic === 'ui.setMode'),
+            startWith({params: mirrorMode.visible})
+        ).subscribe(req => this.handleModeReq(req.params));
 		// eventBus.subscribe('webrtc.invite')
 		// 	.subscribe(msg => )
 	}
 
 	componentWillUnmount () {
-		this._modeReq$.unsubscribe();
+		this._modeReq$ && this._modeReq$.unsubscribe();
 	}
 
 	render () {
 		switch (this.state.mode) {
-		case 'visible':
+		case mirrorMode.visible:
 			return <DefaultView {...this.props} />;
-		case 'hidden':
+		case mirrorMode.hidden:
 			return null;
 		// case 'picture':
 			// return <Picture />;
 		// case 'webrtc':
 		// 	return <WebRTC />
-		case 'painting':
+		case mirrorMode.painting:
 			return <Painting/>;
-		case 'auto':
+		case mirrorMode.auto:
 		default:
 			return <HideUntilFace Component={<DefaultView {...this.props} />} />;
 		}
@@ -100,8 +117,3 @@ class Mirror extends React.Component {
 	}
 }
 */
-Mirror.propTypes = {
-	store: React.PropTypes.object,
-	visible: React.PropTypes.bool,
-};
-module.exports = Mirror;

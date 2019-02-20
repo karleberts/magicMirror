@@ -1,11 +1,10 @@
-import React from 'react';
+import * as React from 'react';
 
-import * as eventBus from 'event-bus/client';
-// import VideoEffect from './videoEffect.jsx';
-import angry from '!file-loader!./resources/angry.mp4';
-import laugh from '!file-loader!./resources/laugh.mp4';
-import sadzombie from '!file-loader!./resources/sadzombie.mp4';
-import surprise from '!file-loader!./resources/surprise.mp4';
+import eventBus from 'event-bus/client';
+const angry = require('!file-loader!./resources/angry.mp4');
+const laugh = require('!file-loader!./resources/laugh.mp4');
+const sadzombie = require('!file-loader!./resources/sadzombie.mp4');
+const surprise = require('!file-loader!./resources/surprise.mp4');
 
 const sources = [
 	angry,
@@ -14,8 +13,12 @@ const sources = [
 	surprise,
 ];
 
-class Blink extends React.Component {
-	constructor (props) {
+interface IBlinkProps {
+    onEnded(): void,
+}
+class Blink extends React.Component<IBlinkProps> {
+    src: string;
+	constructor (props: IBlinkProps) {
 		super(props);
 		this.src = sources[Math.floor(Math.random() * sources.length)];
 		// const relSrc = sources[Math.floor(Math.random() * sources.length)];

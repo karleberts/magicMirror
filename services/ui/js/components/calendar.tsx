@@ -1,9 +1,27 @@
-"use strict";
-const moment = require('moment');
-const React = require('react');
+import * as React from 'react';
+import * as moment from 'moment';
 
-class Calendar extends React.Component {
-	constructor (props) {
+interface ICalendarEvent {
+    id: string,
+    date: string,
+    summary: string,
+    time: string
+}
+interface IDateTime {
+    date: string,
+    time: string,
+}
+
+interface ICalendarProps {
+    fetchEvents(): void,
+    events: Array<ICalendarEvent>
+}
+interface ICalendarState {
+    dateTime: IDateTime
+}
+export default class Calendar extends React.Component<ICalendarProps, ICalendarState> {
+    updateInterval?: number;
+	constructor (props: ICalendarProps) {
 		super(props);
 
 		const m = moment();
@@ -57,9 +75,3 @@ class Calendar extends React.Component {
 		);
 	}
 }
-Calendar.propTypes = {
-	events: React.PropTypes.array,
-	fetchEvents: React.PropTypes.func.isRequired,
-};
-
-module.exports = Calendar;

@@ -1,17 +1,25 @@
-import React from 'react';
-import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
+import * as React from 'react';
+import * as ReactCSSTransitionGroup from 'react-addons-css-transition-group';
+import { Subscription } from 'rxjs';
 
-import * as eventBus from 'event-bus/client';
+import eventBus from 'event-bus/client';
 
-export default class HideUntilFaces extends React.Component {
-	constructor (props) {
+interface IHideProps {
+    Component: React.ReactElement,
+}
+interface IHideState {
+    visible: boolean,
+}
+export default class HideUntilFaces extends React.Component<IHideProps, IHideState> {
+    _faceDetect$?: Subscription;
+	constructor (props: IHideProps) {
 		super(props);
 		this.state = {
 			visible: false,
 		};
 	}
 
-	handleFaceDetectMessage (msg) {
+	handleFaceDetectMessage (msg: any) {
 		const visible = msg.data.contents;
 		if (this.state.visible !== visible) {
 			this.setState({visible});
@@ -26,7 +34,7 @@ export default class HideUntilFaces extends React.Component {
 	}
 
 	componentWillUnmount () {
-		this._faceDetect$.unsubscribe();
+		this._faceDetect$ && this._faceDetect$.unsubscribe();
 	}
 
 	render () {
@@ -42,6 +50,3 @@ export default class HideUntilFaces extends React.Component {
 		);
 	}
 }
-HideUntilFaces.propTypes = {
-	Component: React.PropTypes.node,
-};

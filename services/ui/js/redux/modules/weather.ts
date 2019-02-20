@@ -1,9 +1,23 @@
-'use strict';
-const { Observable } = require('rxjs');
-const R = require('ramda');
-const moment = require('moment');
+import { Observable, interval, of } from 'rxjs';
+import { ajax } from 'rxjs/ajax';
+import {
+    catchError,
+    filter,
+    flatMap,
+    map,
+    startWith,
+    takeUntil,
+    throttle,
+} from 'rxjs/operators';
+import { ofType } from 'redux-observable';
+const R = require('ramda'); //TODO- typing issue w/ R.prop below
+import * as moment from 'moment';
+import { Action } from 'redux';
 
-const iconTable = {
+interface IIconTable {
+    [key: string]: string
+}
+const iconTable: IIconTable = {
 	'clear-day'				: 'wi-day-sunny',
 	'clear-night'			: 'wi-night-clear',
 	'rain'					: 'wi-rain',
@@ -13,9 +27,12 @@ const iconTable = {
 	'fog'					: 'wi-fog',
 	'cloudy'				: 'wi-cloudy',
 	'partly-cloudy-day'		: 'wi-day-cloudy',
-	'partly-cloudy-night'	: 'wi-night-partly-cloudy'
+	'partly-cloudy-night'	: 'wi-night-partly-cloudy',
 };
 
+interface IMoonPhases {
+    [key: string]: string
+}
 const moonPhases = [
 	'wi-moon-new',
 	'wi-moon-waxing-cresent-1',
@@ -64,18 +81,18 @@ const MONITOR_WEATHER = 'weather/MONITOR';
 const ABORT_MONITOR = 'weather/ABORT_MONITOR';
 
 const fetchWeather = () => ({type: FETCH_WEATHER});
-const receiveWeather = weather => ({type: RECEIVE_WEATHER, payload: weather});
+const receiveWeather = (weather: any) => ({type: RECEIVE_WEATHER, payload: weather});
 const monitorWeather = () => ({type: MONITOR_WEATHER});
 const abortMonitor = () => ({type: ABORT_MONITOR});
 
-const actions = {
+export const actions = {
 	fetchWeather,
 	receiveWeather,
 	monitorWeather,
 	abortMonitor,
 };
 
-function format (forecast) {
+function format (forecast: any) {
 	const currently = forecast.currently;
 	const today = forecast.daily.data[0];
 	const currentTemp = Math.round(currently.temperature);
@@ -90,7 +107,7 @@ function format (forecast) {
 		minTemp: Math.round(today.temperatureMin),
 		upcoming: forecast.daily.data
 			.slice(0, 4)
-			.map((data, i) => ({
+			.map((data: any, i: number) => ({
 				date: moment().add(i + 1, 'days').format('M/D'),
 				temp: Math.round(data.temperatureMax),
 				icon: iconTable[data.icon] || 'wi-alien',
@@ -104,21 +121,24 @@ function format (forecast) {
 //!!for now forecast.io reqs are routed through a node proxy b/c forecast.io does not allow CORS
 const forecastUrl = '/forecastIoProxy';
 const formatAndReceive = R.pipe(R.prop('response'), format, receiveWeather);
-const fetchWeatherEpic = action$ => action$
-	.filter(action => action.type === FETCH_WEATHER)
-	.throttle(() => Observable.interval(600000))
-	.flatMap(() => Observable.ajax({url: forecastUrl, responseType: 'json'}))
-	.map(formatAndReceive)
-	.catch(err => Observable.of({type: FETCH_WEATHER, error: true, payload: err}));
+export const fetchWeatherEpic = (action$: Observable<Action>) => action$.pipe(
+    filter(action => action.type === FETCH_WEATHER),
+    throttle(() => interval(600000)),
+    flatMap(() => ajax({url: forecastUrl, responseType: 'json'})),
+    map(formatAndReceive),
+    catchError(err => of({type: FETCH_WEATHER, error: true, payload: err}))
+);
 
-const monitorWeatherEpic = action$ => action$
-	.ofType(MONITOR_WEATHER)
-	.flatMap(() => Observable
-		.interval(600000).startWith(true)
-		.takeUntil(action$.ofType(ABORT_MONITOR)))
-	.map(fetchWeather);
+export const monitorWeatherEpic = (action$: Observable<Action>) => action$.pipe(
+    ofType(MONITOR_WEATHER),
+    flatMap(() => interval(600000).pipe(
+        startWith(true),
+        takeUntil(action$.pipe(ofType(ABORT_MONITOR))))
+    ),
+    map(fetchWeather)
+);
 
-function weatherReducer (state = initialState, action) {
+export default function weatherReducer (state = initialState, action: any) {
 	switch (action.type) {
 	case RECEIVE_WEATHER:
 		if (action.error) {
@@ -131,9 +151,3 @@ function weatherReducer (state = initialState, action) {
 		return state;
 	}
 }
-
-module.exports = Object.assign(weatherReducer, {
-	actions,
-	fetchWeatherEpic,
-	monitorWeatherEpic,
-});

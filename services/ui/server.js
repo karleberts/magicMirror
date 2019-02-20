@@ -8,11 +8,14 @@ const fs = Promise.promisifyAll(require('fs'));
 const google = require('googleapis');
 const moment = require('moment');
 const https = require('https');
-const eventBus = require('event-bus/client');
+const eventBus = require('event-bus/client').default;
 const path = require('path');
 const cp = require('child_process');
+const {
+	filter,
+} = require('rxjs/operators');
 
-const config = require('../../config.json');
+const config = require('../../../config.json');
 // const ZIP_CODE = `${config.weather.zip},us`;
 const UI_PORT = config.ports.ui;
 const UI_URI = `http://localhost:${UI_PORT}`;
@@ -118,9 +121,9 @@ const options = {
 const httpServer = https.createServer(options, app);
 httpServer.listen(UI_PORT);
 
-eventBus.requests
-	.filter(req => req.topic === 'video.play')
-	.subscribe(playVideo);
+eventBus.requests.pipe(
+	filter(req => req.topic === 'video.play')
+).subscribe(playVideo);
 
 eventBus.connect('uiServer')
 	.then(() => eventBus.sendMessage('uiServer.ready', true, 'magicMirror'));

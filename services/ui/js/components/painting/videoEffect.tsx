@@ -1,9 +1,9 @@
-import React from 'react';
-import R from 'ramda';
+import * as React from 'react';
+import * as R from 'ramda';
 
 const styles = {
 	container: {
-		position: 'absolute',
+		position: 'absolute' as 'absolute',
 		top: 0,
 		left: 0,
 		width: '100%',
@@ -16,10 +16,10 @@ const styles = {
 		minHeight: '100%',
 		height: 'auto',
 		width: 'auto',
-		position: 'absolute',
+		position: 'absolute' as 'absolute',
 	},
 	overlay: {
-		position: 'absolute',
+		position: 'absolute' as 'absolute',
 		top: 0,
 		left: 0,
 		width: '100%',
@@ -30,12 +30,21 @@ const styles = {
 	},
 };
 
-class VideoEffect extends React.Component {
-	constructor (props) {
+interface IVideoEffectProps {
+    onEnded(): void,
+    src: string,
+}
+interface IVideoEffectState {
+    styles: any
+}
+class VideoEffect extends React.Component<IVideoEffectProps, IVideoEffectState> {
+    videoRef: any;
+    videoEl: any;
+	constructor (props: IVideoEffectProps) {
 		super(props);
 		this.show = this.show.bind(this);
 		this.onEnded = this.onEnded.bind(this);
-		this.videoRef = c => this.videoEl = c;
+		this.videoRef = (c: any) => this.videoEl = c;
 		this.state = {
 			styles,
 		};

@@ -1,18 +1,35 @@
-"use strict";
-const R = require('ramda');
-const React = require('react');
-const cx = require('classnames');
+import * as R from 'ramda';
+import * as React from 'react';
+import cx from 'classnames';
 
-const UpcomingItem = require('./weather/upcomingItem.jsx');
+import UpcomingItem from './weather/upcomingItem';
 
 //TODO- create an 'error' service that sends me emails/texts (debounced 1/hr) on any kind of error -
 //should listen to 'error' events on the bus...
 //TODO- any api or other errors should raise errors on the bus
 
 
-class Weather extends React.Component {
+interface IUpcomingWeather {
+    icon: string,
+    date: string,
+    temp: string,
+}
+interface IWeather {
+    upcoming: Array<IUpcomingWeather>,
+    sunrise: any,
+    sunset: any,
+    moonPhaseClassName: string,
+    currentTemp: string,
+    maxTemp: number,
+    minTemp: number
+    icon: string,
+}
+export default class Weather extends React.Component<{
+    fetchWeather(): any,
+    abortMonitor(): any,
+    weather: IWeather
+}> {
 	componentWillMount () {
-		// this.props.monitorWeather();
 		this.props.fetchWeather();
 	}
 
@@ -51,12 +68,3 @@ class Weather extends React.Component {
 		);
 	}
 }
-Weather.propTypes = {
-	abortMonitor: React.PropTypes.func.isRequired,
-	fetchWeather: React.PropTypes.func.isRequired,
-	monitorWeather: React.PropTypes.func.isRequired,
-	weather: React.PropTypes.object,
-};
-
-
-module.exports = Weather;

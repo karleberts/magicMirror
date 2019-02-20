@@ -1,10 +1,10 @@
-import React from 'react';
-// import { Subject } from 'rxjs';
-import staticBg from '!file-loader!./painting/resources/staticbg.png';
+import * as React from 'react';
+import { Subscription } from 'rxjs';
+const staticBg = require('!file-loader!./painting/resources/staticbg.png');
 
-import * as eventBus from 'event-bus/client';
-import Blink from './painting/blink.jsx';
-import Words from './painting/words.jsx';
+import eventBus from 'event-bus/client';
+import Blink from './painting/blink';
+import Words from './painting/words';
 
 // const testEmitter = new Subject();
 // window.test = () => testEmitter.next(true);
@@ -13,7 +13,7 @@ const Blank = () => null;
 
 const styles = {
 	container: {
-		position: 'absolute',
+		position: 'absolute' as 'absolute',
 		top: 0,
 		left: 0,
 		width: '100%',
@@ -26,7 +26,7 @@ const styles = {
 		minHeight: '100%',
 		height: 'auto',
 		width: 'auto',
-		position: 'fixed',
+		position: 'fixed' as 'fixed',
 		top: 0,
 		left: 0,
 	},
@@ -37,8 +37,12 @@ const effects = [
 	'words',
 ];
 
-class Painting extends React.Component {
-	constructor (props) {
+interface IPaintingState {
+    animation: any, //TODO
+}
+class Painting extends React.Component<any, IPaintingState> {
+    _faceDetect$?: Subscription;
+	constructor (props: any) {
 		super(props);
 		this.hideAnimation = this.hideAnimation.bind(this);
 		this.state = {
@@ -69,7 +73,7 @@ class Painting extends React.Component {
 	}
 
 	componentWillUnmount () {
-		this._faceDetect$.unsubscribe();
+		this._faceDetect$ && this._faceDetect$.unsubscribe();
 	}
 
 	render () {
