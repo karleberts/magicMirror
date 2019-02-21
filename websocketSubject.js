@@ -1,121 +1,127 @@
-'use strict';
-const Rx = require('rxjs');
-
-const WebSocketCtor = (
-	(typeof Websocket !== 'undefined' && WebSocket) ||
-	(typeof window !== 'undefined' && window && window.WebSocket)
-) || require('ws');
-
-/// by default, when a message is received from the server, we are trying to decode it as JSON
-/// we can override it in the constructor
-function defaultResultSelector (e) {
-	return JSON.parse(e.data);
-}
-
-/// when sending a message, we encode it to JSON
-/// we can override it in the constructor
-function defaultSerializer (data) {
-	return JSON.stringify(data);
-}
-
-module.exports = class RxWebsocketSubject extends Rx.Subject {
-	constructor(
-		url,
-		reconnectInterval = 5000,	/// pause between connections
-		reconnectAttempts = 0,	/// number of connection attempts, 0 will try forever
-		resultSelector = defaultResultSelector,
-		serializer = defaultSerializer
-	) {
-		super();
-		this.resultSelector = resultSelector;
-		this.serializer = serializer;
-		this._buffer = [];
-		this._isConnected = false;
-
-		/// connection status
-		this.connectionStatus = new Rx.Observable(observer => this.connectionObserver = observer)
-			.share()
-			.distinctUntilChanged();
-
-		/// config for WebSocketSubject
-		/// except the url, here is closeObserver and openObserver to update connection status
-		this.wsSubjectConfig = {
-			url,
-			WebSocketCtor: WebSocketCtor,
-			closeObserver: {
-				next: () => {
-					this.socket = null;
-					this._isConnected = false;
-					this.connectionObserver.next(false);
-				}
-			},
-			openObserver: {
-				next: () => {
-					this._isConnected = true;
-					this.connectionObserver.next(true);
-					setTimeout(this._flushBuffer.bind(this), 1000);
-				}
-			}
-		};
-		/// we connect
-		this.connect();
-		/// we follow the connection status and run the reconnect while losing the connection
-		this.connectionStatus.subscribe(isConnected => {
-			if (!this.reconnectionObservable && typeof isConnected == "boolean" && !isConnected) {
-				this.reconnect();
-			}
-		});
-	}
-
-	connect() {
-		this.socket = Rx.Observable.webSocket(this.wsSubjectConfig);
-		this.socket.subscribe(
-			msg => {
-				this.next(msg); /// when receiving a message, we just send it to our Subject
-			},
-			error => {
-				console.error(error);
-				if (!this.socket) {
-					/// in case of an error with a loss of connection, we restore it
-					this.reconnect();
-				}
-			});
-	}
-
-	/// reconnection
-	reconnect () {
-		this.reconnectionObservable = Rx.Observable.interval(this.reconnectInterval)
-			.takeWhile((v, index) => {
-				if (this.socket) { return false; }
-				return this.reconnectAttempts === 0 || index < this.reconnectAttempts;
-			});
-		this.reconnectionObservable.subscribe(
-			() => this.connect(),
-			null,
-			() => {
-				/// if the reconnection attempts are failed, then we call complete of our Subject and status
-				this.reconnectionObservable = null;
-				if (!this.socket) {
-					this.complete();
-					this.connectionObserver.complete();
-				}
-			});
-	}
-
-	/// sending the message
-	send (msg) {
-		if (this._isConnected) {
-			this.socket.next(this.serializer(msg));
-		} else {
-			this._buffer.push(msg);
-		}
-	}
-
-	//called when reconnected
-	_flushBuffer () {
-		if (this._buffer.length) {
-			this._buffer.forEach(msg => this.send(msg));
-			this._buffer = [];
-		}
-	}
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var rxjs_1 = require("rxjs");
+var operators_1 = require("rxjs/operators");
+var webSocket_1 = require("rxjs/webSocket");
+var WebSocketCtor = ((typeof WebSocket !== 'undefined' && WebSocket) ||
+    (typeof window !== 'undefined' && window && window.WebSocket)) || require('ws');
+var defaultResultSelector;
+defaultResultSelector = function (e) {
+    return JSON.parse(e.data);
 };
+var defaultSerializer;
+defaultSerializer = function (data) {
+    return JSON.stringify(data);
+};
+var RxWebsocketSubject = /** @class */ (function (_super) {
+    __extends(RxWebsocketSubject, _super);
+    function RxWebsocketSubject(url, reconnectInterval, /// pause between connections
+    reconnectAttempts, /// number of connection attempts, 0 will try forever
+    resultSelector, serializer) {
+        if (reconnectInterval === void 0) { reconnectInterval = 5000; }
+        if (reconnectAttempts === void 0) { reconnectAttempts = 0; }
+        if (resultSelector === void 0) { resultSelector = defaultResultSelector; }
+        if (serializer === void 0) { serializer = defaultSerializer; }
+        var _this = _super.call(this) || this;
+        _this.resultSelector = resultSelector;
+        _this.serializer = serializer;
+        _this._buffer = [];
+        _this._isConnected = false;
+        /// connection status
+        _this.connectionStatus = new rxjs_1.Observable(function (observer) { return _this.connectionObserver = observer; }).pipe(operators_1.share(), operators_1.distinctUntilChanged());
+        /// config for WebSocketSubject
+        /// except the url, here is closeObserver and openObserver to update connection status
+        _this.wsSubjectConfig = {
+            url: url,
+            WebSocketCtor: WebSocketCtor,
+            closeObserver: {
+                next: function () {
+                    _this.socket = null;
+                    _this._isConnected = false;
+                    _this.connectionObserver.next(false);
+                }
+            },
+            openObserver: {
+                next: function () {
+                    _this._isConnected = true;
+                    _this.connectionObserver.next(true);
+                    setTimeout(_this._flushBuffer.bind(_this), 1000);
+                }
+            }
+        };
+        /// we connect
+        _this.connect();
+        /// we follow the connection status and run the reconnect while losing the connection
+        _this.connectionStatus.subscribe(function (isConnected) {
+            if (!_this.reconnectionObservable && typeof isConnected == "boolean" && !isConnected) {
+                _this.reconnect();
+            }
+        });
+        return _this;
+    }
+    RxWebsocketSubject.prototype.connect = function () {
+        var _this = this;
+        this.socket = webSocket_1.webSocket(this.wsSubjectConfig);
+        this.socket.subscribe(function (msg) {
+            _this.next(msg); /// when receiving a message, we just send it to our Subject
+        }, function (error) {
+            console.error(error);
+            if (!_this.socket) {
+                /// in case of an error with a loss of connection, we restore it
+                _this.reconnect();
+            }
+        });
+    };
+    /// reconnection
+    RxWebsocketSubject.prototype.reconnect = function () {
+        var _this = this;
+        this.reconnectionObservable = rxjs_1.interval(this.reconnectInterval).pipe(operators_1.takeWhile(function (v, index) {
+            if (_this.socket) {
+                return false;
+            }
+            return _this.reconnectAttempts === 0 || index < _this.reconnectAttempts;
+        }));
+        this.reconnectionObservable.subscribe(function () { return _this.connect(); }, null, function () {
+            /// if the reconnection attempts are failed, then we call complete of our Subject and status
+            _this.reconnectionObservable = null;
+            if (!_this.socket) {
+                _this.complete();
+                _this.connectionObserver.complete();
+            }
+        });
+    };
+    /// sending the message
+    RxWebsocketSubject.prototype.send = function (msg) {
+        if (this._isConnected) {
+            this.socket.next(this.serializer(msg));
+        }
+        else {
+            this._buffer.push(msg);
+        }
+    };
+    //called when reconnected
+    RxWebsocketSubject.prototype._flushBuffer = function () {
+        var _this = this;
+        if (this._buffer.length) {
+            this._buffer.forEach(function (msg) { return _this.send(msg); });
+            this._buffer = [];
+        }
+    };
+    return RxWebsocketSubject;
+}(rxjs_1.Subject));
+exports.default = RxWebsocketSubject;
+;
+//# sourceMappingURL=websocketSubject.js.map

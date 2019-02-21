@@ -9,13 +9,18 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "^11.9.4",
+    "@types/ramda": "^0.25.50",
     "querystring": "^0.2.0",
     "ramda": "^0.23.0",
-    "rxjs": "^5.5.12",
+    "rxjs": "^6.4.0",
     "ws": "^6.0.0"
   },
   "react-native": {
     "ws": false,
     "uws": false
+  },
+  "devDependencies": {
+    "typescript": "^3.3.3"
   }
 }
