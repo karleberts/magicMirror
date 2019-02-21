@@ -25,7 +25,7 @@ function createInstance() {
      */
     function connect(endpointId, useSsl) {
         if (useSsl === void 0) { useSsl = false; }
-        return new Promise(function (resolve, reject) {
+        var socketPromise = new Promise(function (resolve, reject) {
             var url = getUrl(endpointId, useSsl);
             sock = new websocketSubject_1.default(url);
             sock.endpointId = endpointId;
@@ -42,7 +42,8 @@ function createInstance() {
                     reject(connectionStatus);
                 }
             });
-        }).then(function (sock) {
+        });
+        return socketPromise.then(function (sock) {
             sendMessage('auth', config.eventBus.secret);
             if (messageBuffer.length) {
                 messageBuffer.forEach(sendSocketMessage);
@@ -53,7 +54,6 @@ function createInstance() {
     }
     /**
      * disconnect from the eventBus and reset
-     * @name EventBusClient#disconnect
      */
     function disconnect() {
         if (!sock) {
@@ -85,9 +85,7 @@ function createInstance() {
     }
     /**
      * Send a subscription request for a message topic
-     * @name EventBusClient#subscribe
      * @param {string} topic - Message topic to subscribe to
-     * @returns {Rx.Observable<TResult>} - Stream of messages for the given topic
      */
     function subscribe(topic) {
         if (!sock || !sock.endpointId) {
@@ -105,9 +103,7 @@ function createInstance() {
     }
     /**
      * unsubscribe from a previously subscribed topic
-     * @name EventBusClient#unsubscribe
      * @param topic
-     * @returns {Observable<T>}
      */
     function unsubscribe(topic) {
         if (!sock || !sock.endpointId) {
@@ -127,7 +123,6 @@ function createInstance() {
      * @param {string} endpointId - Request recipient's endpoint id (e.g. magicMirror.ui)
      * @param {string} topic - Request identifier
      * @param {object} [params] - Additional request params (some requests may not require params)
-     * @returns {Observable} - Response observable
      */
     function request(endpointId, topic, params) {
         if (!sock || !sock.endpointId) {
@@ -213,6 +208,6 @@ function createInstance() {
         requests: requestStream
     };
 }
-module.exports = createInstance();
-module.exports.createInstance = createInstance;
+exports.createInstance = createInstance;
+exports.default = createInstance();
 //# sourceMappingURL=client.js.map

@@ -20,8 +20,8 @@ const {
 const config = require('../config.json');
 const PORT = config.ports.eventBus;
 const SSL_PORT = config.ports.eventBusSsl;
-const privateKey  = fs.readFileSync(path.join(__dirname, '../../certs/eventBus.key'), 'utf8');
-const certificate = fs.readFileSync(path.join(__dirname, '../../certs/eventBus.crt'), 'utf8');
+const privateKey  = fs.readFileSync(path.join(__dirname, '../certs/eventBus.key'), 'utf8');
+const certificate = fs.readFileSync(path.join(__dirname, '../certs/eventBus.crt'), 'utf8');
 const credentials = {
 	key: privateKey,
 	cert: certificate

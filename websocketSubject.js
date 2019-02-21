@@ -18,10 +18,6 @@ var operators_1 = require("rxjs/operators");
 var webSocket_1 = require("rxjs/webSocket");
 var WebSocketCtor = ((typeof WebSocket !== 'undefined' && WebSocket) ||
     (typeof window !== 'undefined' && window && window.WebSocket)) || require('ws');
-var defaultResultSelector;
-defaultResultSelector = function (e) {
-    return JSON.parse(e.data);
-};
 var defaultSerializer;
 defaultSerializer = function (data) {
     return JSON.stringify(data);
@@ -30,13 +26,11 @@ var RxWebsocketSubject = /** @class */ (function (_super) {
     __extends(RxWebsocketSubject, _super);
     function RxWebsocketSubject(url, reconnectInterval, /// pause between connections
     reconnectAttempts, /// number of connection attempts, 0 will try forever
-    resultSelector, serializer) {
+    serializer) {
         if (reconnectInterval === void 0) { reconnectInterval = 5000; }
         if (reconnectAttempts === void 0) { reconnectAttempts = 0; }
-        if (resultSelector === void 0) { resultSelector = defaultResultSelector; }
         if (serializer === void 0) { serializer = defaultSerializer; }
         var _this = _super.call(this) || this;
-        _this.resultSelector = resultSelector;
         _this.serializer = serializer;
         _this._buffer = [];
         _this._isConnected = false;
@@ -106,7 +100,7 @@ var RxWebsocketSubject = /** @class */ (function (_super) {
     /// sending the message
     RxWebsocketSubject.prototype.send = function (msg) {
         if (this._isConnected) {
-            this.socket.next(this.serializer(msg));
+            this.socket.next(msg);
         }
         else {
             this._buffer.push(msg);

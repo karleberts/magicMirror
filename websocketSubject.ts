@@ -24,16 +24,6 @@ export interface SocketEvent {
     to?: string,
 }
 
-/// by default, when a message is received from the server, we are trying to decode it as JSON
-/// we can override it in the constructor
-interface ResultSelector {
-    (event: SocketEvent): any
-}
-let defaultResultSelector: ResultSelector;
-defaultResultSelector = function (e: SocketEvent) {
-    return JSON.parse(e.data);
-};
-
 /// when sending a message, we encode it to JSON
 /// we can override it in the constructor
 interface Serializer {
@@ -44,8 +34,7 @@ defaultSerializer = function (data: any) {
     return JSON.stringify(data);
 };
 
-export default class RxWebsocketSubject<SocketEvent> extends Subject<SocketEvent> {
-    resultSelector: ResultSelector;
+export default class RxWebsocketSubject extends Subject<SocketEvent> {
     serializer: Serializer;
     _buffer: Array<any>;
     _isConnected: boolean;
@@ -61,11 +50,9 @@ export default class RxWebsocketSubject<SocketEvent> extends Subject<SocketEvent
         url: string,
         reconnectInterval = 5000,	/// pause between connections
         reconnectAttempts = 0,	/// number of connection attempts, 0 will try forever
-        resultSelector = defaultResultSelector,
         serializer = defaultSerializer
     ) {
         super();
-        this.resultSelector = resultSelector;
         this.serializer = serializer;
         this._buffer = [];
         this._isConnected = false;
@@ -147,7 +134,7 @@ export default class RxWebsocketSubject<SocketEvent> extends Subject<SocketEvent
     /// sending the message
     send (msg: any) {
         if (this._isConnected) {
-            this.socket.next(this.serializer(msg));
+            this.socket.next(msg);
         } else {
             this._buffer.push(msg);
         }

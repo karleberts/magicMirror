@@ -15,13 +15,13 @@ const config = require('../config.json');
 
 const UI_HOSTNAME = config.uiHostname;
 
-function createInstance () {
+export function createInstance () {
     const socketEvent$: Subject<SocketEvent> = new Subject(); //incoming messages
     let outgoingMessage$: Subject<SocketEvent> = new Subject(); //outgoing messages
     outgoingMessage$.subscribe(sendSocketMessage);
     let messageBuffer: Array<any> = [];
     let messageId = 0;
-    let sock: WebsocketSubject<any> = null;
+    let sock: WebsocketSubject = null;
 
     /**
      * Generate a unique message ID for this endpoint
@@ -34,8 +34,8 @@ function createInstance () {
     /**
      * Connect to the server using the specified endpoint id
      */
-    function connect (endpointId: string, useSsl = false) {
-        return new Promise((resolve, reject) => {
+    function connect (endpointId: string, useSsl = false): Promise<WebsocketSubject> {
+        const socketPromise: Promise<WebsocketSubject> = new Promise((resolve, reject) => {
             const url = getUrl(endpointId, useSsl);
             sock = new WebsocketSubject(url);
             sock.endpointId = endpointId;
@@ -52,7 +52,8 @@ function createInstance () {
                     reject(connectionStatus);
                 }
             });
-        }).then(sock => {
+        });
+        return socketPromise.then(sock => {
             sendMessage('auth', config.eventBus.secret);
             if (messageBuffer.length) {
                 messageBuffer.forEach(sendSocketMessage);
@@ -147,7 +148,7 @@ function createInstance () {
      * @param {string} topic - Request identifier
      * @param {object} [params] - Additional request params (some requests may not require params)
      */
-    function request (endpointId: string, topic: string, params: any) {
+    function request (endpointId: string, topic: string, params?: any) {
         if (!sock || !sock.endpointId) { throw Error('Not connected'); }
         const id = getMessageId(sock.endpointId);
         outgoingMessage$.next({
@@ -239,5 +240,4 @@ function createInstance () {
     };
 }
 
-module.exports = createInstance();
-module.exports.createInstance = createInstance;
+export default createInstance();
