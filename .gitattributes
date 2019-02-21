@@ -1,0 +1,2 @@
+services/ui/public/* linguist-vendored
+services/ui/scss/* linguist-vendored
