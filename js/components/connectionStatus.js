@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ActivityIndicator, Button, Text, View } from 'react-native';
+import { ActivityIndicator, TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 
 import { STATUSES, connect } from '../redux/reducers/connection';
 
@@ -13,10 +13,11 @@ class ConnectionStatus extends React.Component {
 					{status}
 				</Text>
 				{status === STATUSES.disconnected && (
-					<Button
+					<TouchableOpacity
 						onPress={connect}
-						title="Reconnect"
-					/>
+					>
+						<Text>Reconnect</Text>
+					</TouchableOpacity>
 				)}
 				{status === STATUSES.connecting && (
 					<ActivityIndicator />
@@ -28,4 +29,11 @@ class ConnectionStatus extends React.Component {
 ConnectionStatus.propTypes = {
 	status: PropTypes.string,
 };
+const styles = StyleSheet.create({
+	button: {
+		alignItems: 'center',
+		backgroundColor: '#DDDDDD',
+		padding: 10
+	},
+});
 export default ConnectionStatus;
