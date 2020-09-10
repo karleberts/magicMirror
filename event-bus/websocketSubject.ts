@@ -10,38 +10,25 @@ interface Window {
     WebSocket: any
 }
 
-const WebSocketCtor = (
+const WebSocketCtor: typeof WebSocket = (
     (typeof WebSocket !== 'undefined' && WebSocket) ||
     (typeof window !== 'undefined' && window && (<any> window).WebSocket)
 ) || require('ws');
-
-export interface SocketEvent {
-    method: string,
-    data: any,
-    error?: string,
-    from?: string,
-    id?: string,
-    to?: string,
-}
 
 /// when sending a message, we encode it to JSON
 /// we can override it in the constructor
 interface Serializer {
     (data: any): string
 }
-let defaultSerializer: Serializer;
-defaultSerializer = function (data: any) {
-    return JSON.stringify(data);
-};
 
-export default class RxWebsocketSubject extends Subject<SocketEvent> {
+export default class RxWebsocketSubject<T> extends Subject<T> {
     serializer: Serializer;
-    _buffer: Array<any>;
+    _buffer: Array<T>;
     _isConnected: boolean;
     connectionObserver: Observer<boolean>;
-    connectionStatus: Observable<{}>;
-    wsSubjectConfig: WebSocketSubjectConfig<SocketEvent | string>;
-    socket: WebSocketSubject<SocketEvent | string>;
+    connectionStatus: Observable<boolean>;
+    wsSubjectConfig: WebSocketSubjectConfig<T>;
+    socket: WebSocketSubject<T>;
     reconnectInterval: number;
     reconnectionObservable: Observable<number>;
     reconnectAttempts: number;
@@ -50,15 +37,18 @@ export default class RxWebsocketSubject extends Subject<SocketEvent> {
         url: string,
         reconnectInterval = 5000,	/// pause between connections
         reconnectAttempts = 0,	/// number of connection attempts, 0 will try forever
-        serializer = defaultSerializer
+		serializer = (data: T) => JSON.stringify(data),
+		WebsocketImpl = WebSocketCtor
     ) {
         super();
-        this.serializer = serializer;
+		this.serializer = serializer;
+		this.reconnectInterval = reconnectInterval;
+		this.reconnectAttempts = reconnectAttempts;
         this._buffer = [];
         this._isConnected = false;
 
         /// connection status
-        this.connectionStatus = new Observable(
+        this.connectionStatus = new Observable<boolean>(
             observer => this.connectionObserver = observer
         ).pipe(
             share(),
@@ -69,7 +59,7 @@ export default class RxWebsocketSubject extends Subject<SocketEvent> {
         /// except the url, here is closeObserver and openObserver to update connection status
         this.wsSubjectConfig = {
             url,
-            WebSocketCtor: WebSocketCtor,
+            WebSocketCtor: WebsocketImpl,
             closeObserver: {
                 next: () => {
                     this.socket = null;
@@ -85,20 +75,13 @@ export default class RxWebsocketSubject extends Subject<SocketEvent> {
                 }
             }
         };
-        /// we connect
-        this.connect();
-        /// we follow the connection status and run the reconnect while losing the connection
-        this.connectionStatus.subscribe(isConnected => {
-            if (!this.reconnectionObservable && typeof isConnected == "boolean" && !isConnected) {
-                this.reconnect();
-            }
-        });
     }
 
     connect() {
+		if (this.socket) { return; }
         this.socket = webSocket(this.wsSubjectConfig);
         this.socket.subscribe(
-            (msg: SocketEvent) => {
+            (msg: T) => {
                 this.next(msg); /// when receiving a message, we just send it to our Subject
             },
             error => {
@@ -108,6 +91,12 @@ export default class RxWebsocketSubject extends Subject<SocketEvent> {
                     this.reconnect();
                 }
             });
+        /// we follow the connection status and run the reconnect while losing the connection
+        this.connectionStatus.subscribe(isConnected => {
+            if (!this.reconnectionObservable && typeof isConnected == "boolean" && !isConnected) {
+                this.reconnect();
+            }
+        });
     }
 
     /// reconnection

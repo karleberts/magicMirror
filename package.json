@@ -1,4 +1,7 @@
 {
 	"private": true,
-	"workspaces": ["event-bus", "mirror", "app"]
+	"workspaces": ["event-bus", "mirror", "app"],
+  "scripts": {
+	"test": "jest"
+  }
 }
