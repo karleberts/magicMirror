@@ -32,7 +32,7 @@
     "bluebird": "^3.4.1",
     "classnames": "*",
     "css-loader": "^0.28.4",
-    "eslint": "^3.19.0",
+    "eslint": "^7.8.1",
     "eslint-plugin-lodash": "^1.10.0",
     "eslint-plugin-react": "^5.2.2",
     "event-bus": "1.0.0",
