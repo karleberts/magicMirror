@@ -1,0 +1,4 @@
+{
+	"private": true,
+	"workspaces": ["event-bus", "mirror", "app"]
+}
