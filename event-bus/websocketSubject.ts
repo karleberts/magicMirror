@@ -10,7 +10,7 @@ interface Window {
     WebSocket: any
 }
 
-const WebSocketCtor: typeof WebSocket = (
+const WebSocketCtor = (
     (typeof WebSocket !== 'undefined' && WebSocket) ||
     (typeof window !== 'undefined' && window && (<any> window).WebSocket)
 ) || require('ws');
@@ -22,7 +22,8 @@ interface Serializer {
 }
 
 export default class RxWebsocketSubject<T> extends Subject<T> {
-    serializer: Serializer;
+	serializer: Serializer = (data: T) => JSON.stringify(data);
+	deserializer = (e: MessageEvent) => JSON.parse(e.data);
     _buffer: Array<T>;
     _isConnected: boolean;
     connectionObserver: Observer<boolean>;
@@ -37,11 +38,9 @@ export default class RxWebsocketSubject<T> extends Subject<T> {
         url: string,
         reconnectInterval = 5000,	/// pause between connections
         reconnectAttempts = 0,	/// number of connection attempts, 0 will try forever
-		serializer = (data: T) => JSON.stringify(data),
 		WebsocketImpl = WebSocketCtor
     ) {
         super();
-		this.serializer = serializer;
 		this.reconnectInterval = reconnectInterval;
 		this.reconnectAttempts = reconnectAttempts;
         this._buffer = [];
@@ -59,7 +58,9 @@ export default class RxWebsocketSubject<T> extends Subject<T> {
         /// except the url, here is closeObserver and openObserver to update connection status
         this.wsSubjectConfig = {
             url,
-            WebSocketCtor: WebsocketImpl,
+			WebSocketCtor: WebsocketImpl,
+			serializer: this.serializer,
+			deserializer: this.deserializer,
             closeObserver: {
                 next: () => {
                     this.socket = null;
@@ -75,7 +76,15 @@ export default class RxWebsocketSubject<T> extends Subject<T> {
                 }
             }
         };
-    }
+	}
+	
+	setSerializer (serializer: Serializer) {
+		this.serializer = serializer;
+	}
+
+	setDeserializer (deserializer: (e: MessageEvent) => T) {
+		this.deserializer = deserializer;
+	}
 
     connect() {
 		if (this.socket) { return; }
