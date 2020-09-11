@@ -26,14 +26,14 @@ export default class RxWebsocketSubject<T> extends Subject<T> {
 	deserializer = (e: MessageEvent) => JSON.parse(e.data);
     _buffer: Array<T>;
     _isConnected: boolean;
-    connectionObserver: Observer<boolean>;
+    connectionObserver?: Observer<boolean>;
     connectionStatus: Observable<boolean>;
     wsSubjectConfig: WebSocketSubjectConfig<T>;
-    socket: WebSocketSubject<T>;
+    socket?: WebSocketSubject<T>;
     reconnectInterval: number;
-    reconnectionObservable: Observable<number>;
+    reconnectionObservable?: Observable<number>;
     reconnectAttempts: number;
-    endpointId: string;
+    endpointId?: string;
     constructor(
         url: string,
         reconnectInterval = 5000,	/// pause between connections
@@ -63,15 +63,15 @@ export default class RxWebsocketSubject<T> extends Subject<T> {
 			deserializer: this.deserializer,
             closeObserver: {
                 next: () => {
-                    this.socket = null;
+                    this.socket = undefined;
                     this._isConnected = false;
-                    this.connectionObserver.next(false);
+                    this.connectionObserver && this.connectionObserver.next(false);
                 }
             },
             openObserver: {
                 next: () => {
                     this._isConnected = true;
-                    this.connectionObserver.next(true);
+                    this.connectionObserver && this.connectionObserver.next(true);
                     setTimeout(this._flushBuffer.bind(this), 1000);
                 }
             }
@@ -121,17 +121,17 @@ export default class RxWebsocketSubject<T> extends Subject<T> {
             null,
             () => {
                 /// if the reconnection attempts are failed, then we call complete of our Subject and status
-                this.reconnectionObservable = null;
+                this.reconnectionObservable = undefined;
                 if (!this.socket) {
                     this.complete();
-                    this.connectionObserver.complete();
+                    this.connectionObserver && this.connectionObserver.complete();
                 }
             });
     }
 
     /// sending the message
     send (msg: any) {
-        if (this._isConnected) {
+        if (this._isConnected && this.socket) {
             this.socket.next(msg);
         } else {
             this._buffer.push(msg);

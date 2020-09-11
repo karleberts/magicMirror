@@ -53,7 +53,7 @@ test('Attempts to reconnect on disconnect', function () {
 		wasClean: false,
 		code: 0,
 		reason: 'foo',
-		target: null,
+		target: mockedSocketInstance,
 	});
 	jest.runAllTimers();
 
@@ -93,7 +93,7 @@ test('Sends serialized messages to socket', function () {
 	mockedSocketInstance.onopen({
 		target: mockedSocketInstance,
 	});
-	mockedSocketInstance.readyState = WebSocket.OPEN;
+	mockedSocketInstance.readyState = Socket.OPEN;
 	const data = {foo: 'foo'};
 
 	wss$.send({foo: 'foo'});

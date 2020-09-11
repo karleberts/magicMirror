@@ -1,7 +1,24 @@
 {
 	"private": true,
-	"workspaces": ["event-bus", "mirror", "app"],
-  "scripts": {
-	"test": "jest"
-  }
+	"workspaces": [
+		"event-bus",
+		"mirror",
+		"app"
+	],
+	"scripts": {
+		"test": "jest"
+	},
+	"devDependencies": {
+		"@babel/core": "^7.11.6",
+		"@babel/preset-env": "^7.11.5",
+		"@babel/preset-typescript": "^7.10.4",
+		"@tsconfig/recommended": "^1.0.1",
+		"@types/jest": "^26.0.13",
+		"babel-jest": "^26.3.0",
+		"jest": "^26.4.2",
+		"ts-jest": "^26.3.0"
+	},
+	"dependencies": {
+		"typescript": "^4.0.2"
+	}
 }
