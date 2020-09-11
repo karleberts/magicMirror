@@ -1,12 +1,13 @@
 import * as R from 'ramda';
-import { Observable, Subject, interval } from 'rxjs';
+import { Subject, interval, Observable } from 'rxjs';
 import {
     filter,
     flatMap,
     map,
     take,
     timeout,
-    withLatestFrom
+    withLatestFrom,
+    publish
 } from 'rxjs/operators';
 
 import { SocketEvent } from './types';
@@ -16,6 +17,7 @@ export interface Config {
     uiHostname: string,
     eventBus: {
         secret: string,
+        useSsl: boolean,
     },
     ports: {
         eventBus: number,
@@ -23,106 +25,104 @@ export interface Config {
     },
 }
 
-export function createInstance (config: Config) {
-    const socketEvent$: Subject<SocketEvent> = new Subject(); //incoming messages
-    let outgoingMessage$: Subject<SocketEvent> = new Subject(); //outgoing messages
-    outgoingMessage$.subscribe(sendSocketMessage);
-    let messageBuffer: Array<any> = [];
-    let messageId = 0;
-    let sock: RxWebsocketSubject<SocketEvent>|undefined;
+export default class EventBusClient {
+    private socketEvent$ = new Subject<SocketEvent>();
+    private outgoingMessage$ = new Subject<SocketEvent>();
+    private messageBuffer = <any[]>[];
+    private messageId = 0;
+    private sock: RxWebsocketSubject<SocketEvent>;
+    private endpointId: string;
+    public connectionStatus: Observable<boolean>;
+    request$ = this.socketEvent$.pipe(
+        filter(evt => (evt.method === 'request')),
+        map(request => ({
+            topic: request.data.topic,
+            params: request.data.params,
+            respond: R.once(R.partial(this.respond.bind(this), [request.from, request.id]))
+        }))
+    );
 
-    /**
-     * Generate a unique message ID for this endpoint
-     * @param endpointId {string}
-     */
-    function getMessageId (endpointId: string) {
-        return `${endpointId}:${messageId++}`;
+    constructor (endpointId: string, config: Config) {
+            const proto = (config.eventBus.useSsl) ? 'wss' : 'ws';
+            const port = (config.eventBus.useSsl) ? config.ports.eventBusSsl : config.ports.eventBus;
+            const url = `${proto}://${config.uiHostname}:${port}/?endpointId=${encodeURIComponent(endpointId)}`;
+            const sock = this.sock = new RxWebsocketSubject<SocketEvent>(url);
+            this.connectionStatus = sock.connectionStatus.pipe(publish());
+            this.endpointId = endpointId;
+
+            this.outgoingMessage$.subscribe(this.sendSocketMessage.bind(this));
+            sock.subscribe(msg => this.socketEvent$.next(msg));
+            interval(50000).pipe(
+                withLatestFrom(sock.connectionStatus),
+                filter(([i, isConnected]) => isConnected)
+            ).subscribe(() => this.ping());
+            sock.connectionStatus.pipe(
+                filter(R.identity)
+            ).subscribe(() => {
+                this.sendMessage('auth', config.eventBus.secret);
+                if (this.messageBuffer.length) {
+                    this.messageBuffer.forEach(this.sendSocketMessage.bind(this));
+                    this.messageBuffer = [];
+                }
+            })
+            sock.connect();
     }
 
     /**
-     * Connect to the server using the specified endpoint id
+     * Generate a unique message ID for this endpoint
      */
-    function connect (endpointId: string, useSsl = false) {
-        return new Promise<RxWebsocketSubject<SocketEvent>>((resolve, reject) => {
-            const url = getUrl(endpointId, useSsl);
-            sock = new RxWebsocketSubject<SocketEvent>(url);
-            sock.endpointId = endpointId;
-            sock.subscribe(msg => socketEvent$.next(msg));
-            interval(50000).pipe(
-                withLatestFrom(sock.connectionStatus)
-            ).subscribe(([i, isConnected]) => isConnected && ping());
-            sock.connectionStatus.pipe(
-                take(1)
-            ).subscribe(connectionStatus => {
-                if (connectionStatus) {
-                    resolve(sock);
-                } else {
-                    reject(connectionStatus);
-                }
-            });
-        }).then((sock) => {
-            sendMessage('auth', config.eventBus.secret);
-            if (messageBuffer.length) {
-                messageBuffer.forEach(sendSocketMessage);
-                messageBuffer = [];
-            }
-            return sock;
-        });
+    private getMessageId () {
+        return `${this.endpointId}:${this.messageId++}`;
     }
 
     /**
      * disconnect from the eventBus and reset
      */
-    function disconnect () {
-        if (!sock) { throw new Error('Not connected'); }
-        if (sock.socket) {
-            sock.socket.complete();
-            sock.socket.unsubscribe();
+    disconnect () {
+        if (!this.sock) { throw new Error('Not connected'); }
+        if (this.sock.socket) {
+            this.sock.socket.complete();
+            this.sock.socket.unsubscribe();
         }
-        sock = undefined;
     }
 
     /**
      * ping the server
      */
-    function ping () {
-        sendMessage('ping', null);
-        outgoingMessage$.next({
+    private ping () {
+        this.outgoingMessage$.next({
             method: 'ping',
             data: null
         });
     }
 
     /**
-     * Get the full server address given an endpoint id
+     * Throws an error if not connected
+     * @throws Error
      */
-    function getUrl (endpointId: string, useSsl: boolean) {
-        const proto = (useSsl) ? 'wss' : 'ws';
-        const PORT = (useSsl) ? config.ports.eventBusSsl : config.ports.eventBus;
-        const URL = `${proto}://${config.uiHostname}:${PORT}/`;
-        endpointId = encodeURIComponent(endpointId);
-        return `${URL}?endpointId=${endpointId}`;
+    private checkConnection () {
+        if (!this.sock || !this.endpointId) { throw Error('Not connected'); }
     }
 
     /**
      * Send a subscription request for a message topic
      * @param {string} topic - Message topic to subscribe to
      */
-    function subscribe (topic: string) {
-        if (!sock || !sock.endpointId) { throw Error('Not connected'); }
-        const id = getMessageId(sock.endpointId);
-        outgoingMessage$.next({
+    subscribe (topic: string) {
+        this.checkConnection();
+        const id = this.getMessageId();
+        this.outgoingMessage$.next({
             method: 'subscribe',
             id,
             data: {topic}
         });
-        return socketEvent$.pipe(
+        return this.socketEvent$.pipe(
             filter(evt => (
                 evt.method === 'subscription.received' &&
                 evt.id === id
             )),
             take(1),
-            flatMap(() => socketEvent$.pipe(
+            flatMap(() => this.socketEvent$.pipe(
                 filter(evt => (evt.method === 'message' &&
                     R.path(['data', 'topic'], evt) === topic)
                 )
@@ -132,17 +132,17 @@ export function createInstance (config: Config) {
 
     /**
      * unsubscribe from a previously subscribed topic
-     * @param topic
+     * @param {string} topic
      */
-    function unsubscribe (topic: string) {
-        if (!sock || !sock.endpointId) { throw Error('Not connected'); }
-        const id = getMessageId(sock.endpointId);
-        outgoingMessage$.next({
+    unsubscribe (topic: string) {
+        this.checkConnection();
+        const id = this.getMessageId();
+        this.outgoingMessage$.next({
             method: 'unsubscribe',
             id,
             data: {topic}
         });
-        return socketEvent$.pipe(
+        return this.socketEvent$.pipe(
             filter(evt => (
                 evt.method === 'unsubscribe.response' &&
                 evt.id === id
@@ -157,16 +157,16 @@ export function createInstance (config: Config) {
      * @param {string} topic - Request identifier
      * @param {object} [params] - Additional request params (some requests may not require params)
      */
-    function request (endpointId: string, topic: string, params?: any) {
-        if (!sock || !sock.endpointId) { throw Error('Not connected'); }
-        const id = getMessageId(sock.endpointId);
-        outgoingMessage$.next({
+    request (endpointId: string, topic: string, params?: any) {
+        this.checkConnection();
+        const id = this.getMessageId();
+        this.outgoingMessage$.next({
             to: endpointId,
             method: 'request',
             id,
             data: {topic, params}
         });
-        return socketEvent$.pipe(
+        return this.socketEvent$.pipe(
             filter(evt => evt.method === 'request.response' &&
                 evt.from === endpointId && evt.id === id),
             take(1),
@@ -183,8 +183,8 @@ export function createInstance (config: Config) {
      * @param {object} message - message payload
      * @param {string} [to] - Optional endpoint id for directed messaging
      */
-    function sendMessage (topic: string, message: any, to?: string) {
-        outgoingMessage$.next({
+    sendMessage (topic: string, message: any, to?: string) {
+        this.outgoingMessage$.next({
             method: 'message',
             to,
             data: {
@@ -198,29 +198,17 @@ export function createInstance (config: Config) {
      * Internal method for putting data out the socket
      * @param {object} msg - Packet to send over the socket, format should correspond to something the server knows how to interpret'
      */
-    function sendSocketMessage(msg: SocketEvent) {
-        if (sock) {
+    private sendSocketMessage(msg: SocketEvent) {
+        if (this.sock) {
             msg = R.merge(msg, {
-                from: sock.endpointId
+                from: this.endpointId
             });
-            sock.send(msg);
+            this.sock.next(msg);
         } else {
-            messageBuffer.push(msg);
+            this.messageBuffer.push(msg);
         }
     }
 
-    /**
-     * listen for requests on the socket
-     * Exposed as exports.requests
-     */
-    const requestStream = socketEvent$.pipe(
-        filter(evt => (evt.method === 'request')),
-        map(request => ({
-            topic: request.data.topic,
-            params: request.data.params,
-            respond: R.once(R.partial(respond, [request.from, request.id]))
-        }))
-    );
 
     /**
      * Added to request notifications as a method with bound params to allow observer methods to
@@ -229,33 +217,12 @@ export function createInstance (config: Config) {
      * @param id - id of the original request
      * @param [params] - Response data
      */
-    function respond (to: string, id:string, params: any) {
-        outgoingMessage$.next({
+    private respond (to: string, id: string, params: any) {
+        this.outgoingMessage$.next({
             method : 'request.response',
             to : to,
             id : id,
             data : params
         });
     }
-
-    return {
-        connect,
-        disconnect,
-        subscribe,
-        unsubscribe,
-        sendMessage,
-        request,
-        requests : requestStream
-    };
 }
-
-export default createInstance({
-    uiHostname: 'foo',
-    eventBus: {
-        secret: 'foo',
-    },
-    ports: {
-        eventBus: 80,
-        eventBusSsl: 8080,
-    }
-})
