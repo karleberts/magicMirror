@@ -7,7 +7,8 @@ import {
     take,
     timeout,
     withLatestFrom,
-    publish
+    publish,
+	takeUntil
 } from 'rxjs/operators';
 
 import { SocketEvent } from './types';
@@ -126,7 +127,11 @@ export default class EventBusClient {
                 filter(evt => (evt.method === 'message' &&
                     R.path(['data', 'topic'], evt) === topic)
                 )
-            ))
+			)),
+			takeUntil(this.outgoingMessage$.pipe(
+				filter(msg => msg.method === 'unsubscribe' &&
+					!!R.path(['data', 'topic'], msg))
+			))
         );
     }
 
