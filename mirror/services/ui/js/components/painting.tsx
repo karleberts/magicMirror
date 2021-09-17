@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Subscription } from 'rxjs';
 const staticBg = require('!file-loader!./painting/resources/staticbg.png');
 
-import eventBus from 'event-bus/client';
+import Client from 'event-bus/client';
 import Blink from './painting/blink';
 import Words from './painting/words';
 
@@ -37,10 +37,13 @@ const effects = [
 	'words',
 ];
 
+interface IPaintingProps {
+    eventBusClient: Client
+}
 interface IPaintingState {
     animation: any, //TODO
 }
-class Painting extends React.Component<any, IPaintingState> {
+class Painting extends React.Component<IPaintingProps, IPaintingState> {
     _faceDetect$?: Subscription;
 	constructor (props: any) {
 		super(props);
@@ -66,7 +69,8 @@ class Painting extends React.Component<any, IPaintingState> {
 	}
 
 	componentWillMount () {
-		this._faceDetect$ = eventBus.subscribe('faceDetect.result')
+		this._faceDetect$ = this.props.eventBusClient
+            .subscribe('faceDetect.result')
 			.subscribe(msg => msg.data.contents && this.doAnimation());
 		// testEmitter.subscribe(() => this.doAnimation());
 
@@ -90,6 +94,7 @@ class Painting extends React.Component<any, IPaintingState> {
 				/>
 
 				<this.state.animation
+                    eventBusClient={this.props.eventBusClient}
 					onEnded={this.hideAnimation}
 				/>
 			</div>

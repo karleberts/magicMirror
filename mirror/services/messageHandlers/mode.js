@@ -1,7 +1,7 @@
 'use strict';
-const { request, requests, sendMessage, } = require('event-bus/client');
-
+const client = require('../../lib/eventBusClient').getClient();
 const { sleepHdmi, wakeHdmi } = require('../../lib/hdmi');
+const { filter, tap } = require('rxjs/operators');
 
 const state = {
 	mode: 'auto',
@@ -12,35 +12,35 @@ function auto () {
 	console.log('auto');
 	state.mode = 'auto';
 	wakeHdmi();
-	request('magicMirror.ui', 'ui.setMode', 'auto');
-	request('faceDetect', 'faceDetect.pause', false);
-	sendMessage('ui.modeChanged', 'auto');
+	client.request('magicMirror.ui', 'ui.setMode', 'auto');
+	client.request('faceDetect', 'faceDetect.pause', false);
+	client.sendMessage('ui.modeChanged', 'auto');
 }
 
 function hide () {
 	console.log('hiding');
 	state.mode = 'hidden';
 	sleepHdmi();
-	request('magicMirror.ui', 'ui.setMode', 'hidden');
-	request('faceDetect', 'faceDetect.pause', true);
-	sendMessage('ui.modeChanged', 'hidden');
+	client.request('magicMirror.ui', 'ui.setMode', 'hidden');
+	client.request('faceDetect', 'faceDetect.pause', true);
+	client.sendMessage('ui.modeChanged', 'hidden');
 }
 
 function show () {
 	console.log('showing');
 	state.mode = 'visible';
 	wakeHdmi();
-	request('magicMirror.ui', 'ui.setMode', 'visible');
-	request('faceDetect', 'faceDetect.pause', true);
-	sendMessage('ui.modeChanged', 'visible');
+	client.request('magicMirror.ui', 'ui.setMode', 'visible');
+	client.request('faceDetect', 'faceDetect.pause', true);
+	client.sendMessage('ui.modeChanged', 'visible');
 }
 
 function painting () {
 	state.mode = 'painting';
 	wakeHdmi();
-	request('magicMirror.ui', 'ui.setMode', 'painting');
-	request('faceDetect', 'faceDetect.pause', false);
-	sendMessage('ui.modeChanged', 'painting');
+	client.request('magicMirror.ui', 'ui.setMode', 'painting');
+	client.request('faceDetect', 'faceDetect.pause', false);
+	client.sendMessage('ui.modeChanged', 'painting');
 }
 
 
@@ -72,11 +72,15 @@ function set (mode, data) {
 	}
 }
 
-requests
-	.do(req => console.log(req))
-	.filter(req => req.topic === 'mode.set')
+client.request$
+    .pipe(
+        tap(req => console.log(req)),
+        filter(req => req.topic === 'mode.set')
+    )
 	.subscribe(req => set(req.params.mode, req.params.data));
 
-requests
-	.filter(req => req.topic === 'mode.get')
+client.request$
+    .pipe(
+        filter(req => req.topic === 'mode.get')
+    )
 	.subscribe(req => req.respond(state.mode));

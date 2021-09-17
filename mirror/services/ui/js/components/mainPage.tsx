@@ -5,7 +5,7 @@ import {
     startWith,
 } from 'rxjs/operators';
 
-import eventBus from 'event-bus/client';
+import Client from 'event-bus/client';
 import DefaultView from './default';
 import HideUntilFace from './hideUntilFace';
 // import Picture from './picture.jsx';
@@ -13,6 +13,7 @@ import Painting from './painting';
 
 interface IMirrorProps {
     store: any,
+    eventBusClient: Client
 }
 enum mirrorMode {
     auto = 'auto',
@@ -28,7 +29,7 @@ export default class Mirror extends React.Component<IMirrorProps, IMirrorState> 
 	constructor (props: IMirrorProps) {
 		super(props);
 		this.state = {
-			mode: mirrorMode.visible,
+			mode: mirrorMode.painting,
 		};
 	}
 
@@ -38,10 +39,13 @@ export default class Mirror extends React.Component<IMirrorProps, IMirrorState> 
 	}
 
 	componentWillMount () {
-		this._modeReq$ = eventBus.requests.pipe(
-		    filter(req => req.topic === 'ui.setMode'),
-            startWith({params: mirrorMode.visible})
-        ).subscribe(req => this.handleModeReq(req.params));
+		this._modeReq$ = this.props.eventBusClient
+            .request$
+            .pipe(
+                filter(req => req.topic === 'ui.setMode'),
+                startWith({params: mirrorMode.painting})
+            )
+            .subscribe(req => this.handleModeReq(req.params));
 		// eventBus.subscribe('webrtc.invite')
 		// 	.subscribe(msg => )
 	}
@@ -61,10 +65,15 @@ export default class Mirror extends React.Component<IMirrorProps, IMirrorState> 
 		// case 'webrtc':
 		// 	return <WebRTC />
 		case mirrorMode.painting:
-			return <Painting/>;
+			return <Painting eventBusClient={this.props.eventBusClient} />;
 		case mirrorMode.auto:
 		default:
-			return <HideUntilFace Component={<DefaultView {...this.props} />} />;
+			return (
+                <HideUntilFace
+                    Component={<DefaultView {...this.props} />}
+                    eventBusClient={this.props.eventBusClient}
+                />
+            );
 		}
 	}
 }

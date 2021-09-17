@@ -4,22 +4,20 @@ const path = require('path');
 const Promise = require('bluebird');
 const process = require('process');
 const eventBus = {
-	client: require('event-bus/client'),
-	server: require('event-bus/server'),
+	server: require('event-bus/server').default,
 };
+const { Server } = require('ws');
+const { getClient } = require('./lib/eventBusClient');
 
-const config = require('./config.json');
+const config = require('../config.json');
 const serviceUtils = require('./services');
 const updateCloudflare = require('./lib/cloudflareUpdater');
+const WebsocketSubject = require('event-bus/websocketSubject').default;
 
 const servicesDir = path.join(__dirname, 'services');
 const paths = {
 	python: path.resolve(__dirname, '..', '..', '.virtualenvs', 'cv', 'bin', 'python'),
 	services: {
-		eventBus: {
-			server: path.resolve(servicesDir, 'eventBus', 'server.js'),
-			client: path.resolve(servicesDir, 'eventBus', 'client.js'),
-		},
 		ui: {
 			server: path.resolve(servicesDir, 'ui', 'server.js'),
 		},
@@ -30,36 +28,37 @@ const paths = {
 };
 
 const services = [{
-	cmd: paths.python,
-	args: ['-u', paths.services.faceDetection.main],
-	endpointId: 'faceDetect',
-	opts: {
-		cwd: path.dirname(paths.services.faceDetection.main),
-		stdio: 'inherit',
-		env: {DISPLAY: ':0.0'}
-	},
-}, {
+//	cmd: paths.python,
+//	args: ['-u', paths.services.faceDetection.main],
+//	endpointId: 'faceDetect',
+//	opts: {
+//		cwd: path.dirname(paths.services.faceDetection.main),
+//		stdio: 'inherit',
+//		env: {DISPLAY: ':0.0'}
+//	},
+//}, {
 	jsFile: paths.services.ui.server,
 	endpointId: 'uiServer',
 }];
 
 function startEventBus () {
 	console.log('starting the event bus');
-	return eventBus.server.createServer();
+	return eventBus.server(Server, config);
 }
 
 function connectEventBus () {
 	console.log('connecting eventBus');
-	return eventBus.client.connect('magicMirror');
+    eventBus.client = getClient();
 }
 
 function startListeners () {
+    console.log('starting listeners');
 	require('./services/messageHandlers');
 }
 
 function startServices () {
 	console.log('starting the services');
-	return Promise.all(services.map(serviceUtils.start));
+	return Promise.all(services.map(serviceDef => serviceUtils.start(serviceDef, eventBus.client)));
 }
 
 let browserInst;

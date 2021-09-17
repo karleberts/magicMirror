@@ -1,7 +1,7 @@
 'use strict';
 const fetch = require('node-fetch');
 
-const config = require('../config.json');
+const config = require('../../config.json');
 
 function cloudflareApi (myIp) {
 	const API_KEY = config.apiKeys.cloudflare;

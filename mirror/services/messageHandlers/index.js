@@ -1,11 +1,12 @@
 'use strict';
-
-
-const { requests } = require('event-bus/client');
+const client = require('../../lib/eventBusClient').getClient();
+const { filter } = require('rxjs/operators');
 
 require('./hdmi');
 require('./mode');
 
-requests
-	.filter(req => req.topic === 'magicMirror.restart' && !req.params)
+client.request$
+    .pipe(
+        filter(req => req.topic === 'magicMirror.restart' && !req.params)
+    )
 	.subscribe(() => process.kill(process.pid, 'SIGTERM'));

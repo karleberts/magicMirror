@@ -1,21 +1,25 @@
 import * as React from 'react';
 
-import eventBus from 'event-bus/client';
-const wink  = require('!file-loader!./resources/wink.mp4');
+import Client from 'event-bus/client';
+//const wink  = require('!file-loader!./resources/wink.mp4');
 
 /*
 see atmosfx.com/products/unliving-portraits for original videos
+*/
 const angry = require('!file-loader!./resources/angry.mp4');
 const laugh = require('!file-loader!./resources/laugh.mp4');
 const sadzombie = require('!file-loader!./resources/sadzombie.mp4');
 const surprise = require('!file-loader!./resources/surprise.mp4');
-*/
 
 const sources = [
-	wink,
+	angry,
+    laugh,
+    sadzombie,
+    surprise,
 ];
 
 interface IBlinkProps {
+    eventBusClient: Client,
     onEnded(): void,
 }
 class Blink extends React.Component<IBlinkProps> {
@@ -30,7 +34,8 @@ class Blink extends React.Component<IBlinkProps> {
 	}
 
 	componentDidMount () {
-		eventBus.request('uiServer', 'video.play', {src: this.src})
+		this.props.eventBusClient
+            .request('uiServer', 'video.play', {src: this.src})
 			.subscribe(() => {
 				this.props.onEnded();
 			});

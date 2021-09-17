@@ -8,11 +8,11 @@ const fs = Promise.promisifyAll(require('fs'));
 const google = require('googleapis');
 const moment = require('moment');
 const https = require('https');
-const eventBus = require('event-bus/client').default;
+const Client = require('event-bus/client').default;
 const path = require('path');
 const cp = require('child_process');
 const {
-	filter,
+	filter, take, tap,
 } = require('rxjs/operators');
 
 const config = require('../../../config.json');
@@ -121,9 +121,16 @@ const options = {
 const httpServer = https.createServer(options, app);
 httpServer.listen(UI_PORT);
 
-eventBus.requests.pipe(
-	filter(req => req.topic === 'video.play')
-).subscribe(playVideo);
-
-eventBus.connect('uiServer')
-	.then(() => eventBus.sendMessage('uiServer.ready', true, 'magicMirror'));
+const client = new Client('uiServer', config);
+client.request$
+    .pipe(
+        filter(req => req.topic === 'video.play')
+    )
+    .subscribe(playVideo);
+client.connectionStatus
+    .pipe(
+        filter(isConnected => isConnected),
+        take(1),
+        tap(arg => console.log(arg))
+    )
+    .subscribe(() => client.sendMessage('uiServer.ready', true, 'magicMirror'));

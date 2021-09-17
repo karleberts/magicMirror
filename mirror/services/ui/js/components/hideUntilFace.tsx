@@ -2,10 +2,11 @@ import * as React from 'react';
 import * as ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import { Subscription } from 'rxjs';
 
-import eventBus from 'event-bus/client';
+import Client from 'event-bus/client';
 
 interface IHideProps {
     Component: React.ReactElement,
+    eventBusClient: Client
 }
 interface IHideState {
     visible: boolean,
@@ -27,9 +28,11 @@ export default class HideUntilFaces extends React.Component<IHideProps, IHideSta
 	}
 
 	componentWillMount () {
-		this._faceDetect$ = eventBus.subscribe('faceDetect.result')
+		this._faceDetect$ = this.props.eventBusClient
+            .subscribe('faceDetect.result')
 			.subscribe(msg => this.handleFaceDetectMessage(msg));
-		eventBus.request('faceDetect', 'faceDetect.getStatus')
+		this.props.eventBusClient
+            .request('faceDetect', 'faceDetect.getStatus')
 			.subscribe(visible => this.setState({visible}));
 	}
 

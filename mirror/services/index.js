@@ -1,7 +1,6 @@
 'use strict';
 const cp = require('child_process');
-
-const eventBus = require('event-bus/client');
+const { take } = require('rxjs/operators');
 
 function stopService (service) {
 	if (!service.child) { return; }
@@ -20,7 +19,7 @@ function restart (service) {
 	return startService(service);
 }
 
-function startService (service) {
+function startService (service, client) {
 	const {
 		args,
 		cmd,
@@ -30,8 +29,10 @@ function startService (service) {
 	} = service;
 	console.log('starting service', endpointId);
 	return new Promise((resolve, reject) => {
-		eventBus.subscribe(`${endpointId}.ready`)
-			.take(1)
+		client.subscribe(`${endpointId}.ready`)
+            .pipe(
+                take(1)
+            )
 			.subscribe(
 				msg => {
 					console.log(`${endpointId} started`, msg);

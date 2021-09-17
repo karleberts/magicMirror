@@ -1,12 +1,1 @@
-{
-    "compilerOptions": {
-        "sourceMap": true,
-        "module": "commonjs",
-        "target": "es5",
-		"moduleResolution": "node",
-		"noEmit": true,
-		"allowJs": true,
-		"strict": true,
-		"jsx": "react"
-    }
-}
+../tsconfig.json

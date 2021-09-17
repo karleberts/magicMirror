@@ -1,13 +1,18 @@
 'use strict';
-const { requests } = require('event-bus/client');
+const client = require('../../lib/eventBusClient').getClient();
 
 const { sleepHdmi, wakeHdmi } = require('../../lib/hdmi');
+const { filter } = require('rxjs/operators');
 
 
-requests
-	.filter(req => req.topic === 'hdmi.sleep' && req.params)
+client.request$
+    .pipe(
+        filter(req => req.topic === 'hdmi.sleep' && req.params)
+    )
 	.subscribe(sleepHdmi);
 	
-requests
-	.filter(req => req.topic === 'hdmi.sleep' && !req.params)
+client.request$
+    .pipe(
+        filter(req => req.topic === 'hdmi.sleep' && !req.params)
+    )
 	.subscribe(wakeHdmi);
