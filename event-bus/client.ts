@@ -1,4 +1,5 @@
 import * as R from 'ramda';
+import { tap } from 'ramda';
 import { Subject, interval, Observable } from 'rxjs';
 import {
     filter,
@@ -48,7 +49,7 @@ export default class EventBusClient {
             const port = (config.eventBus.useSsl) ? config.ports.eventBusSsl : config.ports.eventBus;
             const url = `${proto}://${config.uiHostname}:${port}/?endpointId=${encodeURIComponent(endpointId)}`;
             const sock = this.sock = new RxWebsocketSubject<SocketEvent>(url);
-            this.connectionStatus = sock.connectionStatus.pipe(publish());
+            this.connectionStatus = sock.connectionStatus;
             this.endpointId = endpointId;
 
             this.outgoingMessage$.subscribe(this.sendSocketMessage.bind(this));
@@ -59,7 +60,7 @@ export default class EventBusClient {
             ).subscribe(() => this.ping());
             sock.connectionStatus.pipe(
                 filter(R.identity)
-            ).subscribe(() => {
+            ).subscribe((arg) => {
                 this.sendMessage('auth', config.eventBus.secret);
                 if (this.messageBuffer.length) {
                     this.messageBuffer.forEach(this.sendSocketMessage.bind(this));
@@ -208,7 +209,7 @@ export default class EventBusClient {
             msg = R.merge(msg, {
                 from: this.endpointId
             });
-            this.sock.next(msg);
+            this.sock.send(msg);
         } else {
             this.messageBuffer.push(msg);
         }

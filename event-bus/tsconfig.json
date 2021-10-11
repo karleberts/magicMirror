@@ -3,10 +3,12 @@
         "sourceMap": true,
         "noImplicitAny": true,
         "module": "commonjs",
+        "esModuleInterop": true,
         "target": "es5"
     },
 	"files": [
 		"client.ts",
+        "server.ts",
 		"websocketSubject.ts"
 	]
 }

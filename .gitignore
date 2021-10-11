@@ -1,2 +1,21 @@
 node_modules
 .idea/
+mirror/services/ui/public/
+mirror/services/ui/ws.*
+event-bus/*.js
+event-bus/*.js.map
+certs/
+config.json
+.vscode/
+.expo/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# macOS
+.DS_Store

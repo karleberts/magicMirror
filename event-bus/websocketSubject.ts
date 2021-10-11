@@ -1,3 +1,4 @@
+import { tap } from 'ramda';
 import {Subject, Observable, Observer, interval} from 'rxjs';
 import {
     distinctUntilChanged,
@@ -94,6 +95,7 @@ export default class RxWebsocketSubject<T> extends Subject<T> {
                 this.next(msg); /// when receiving a message, we just send it to our Subject
             },
             error => {
+                console.error(this.wsSubjectConfig.url);
                 console.error(error);
                 if (!this.socket) {
                     /// in case of an error with a loss of connection, we restore it

@@ -1,10 +1,14 @@
 {
 	"private": true,
-	"workspaces": [
-		"event-bus",
-		"mirror",
-		"app"
-	],
+    "workspaces": {
+        "nohoist": ["event-bus"],
+        "packages": [
+            "event-bus",
+            "mirror",
+            "app",
+            "app2"
+        ]
+    },
 	"scripts": {
 		"test": "jest"
 	},

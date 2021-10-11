@@ -13,13 +13,13 @@ import {
 import {
 	tap,
 	filter,
-	flatMap,
 	map,
 	scan,
 	share,
 	take,
 	takeUntil,
 	withLatestFrom,
+    mergeMap,
 } from 'rxjs/operators';
 import WebSocket, { Server } from 'ws';
 import * as https from 'https';
@@ -41,6 +41,7 @@ type Client = WebSocket & {
 }
 
 export default function createServer (WebSocketServer: typeof Server, config: Config) {
+    console.log('creating an event bus server');
 	const PORT = config.ports.eventBus;
 	const SSL_PORT = config.ports.eventBusSsl;
 	const privateKey  = fs.readFileSync(path.join(__dirname, '../certs/eventBus.key'), 'utf8');
@@ -78,7 +79,7 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 
 	function handleConnection (client: Client) {
 		const endpointId = getEndpointIdFromConnection(client);
-		// console.log(`${endpointId} connected`);
+        console.log(`${endpointId} connected`);
 		//can dispose of the underlying streams on disconnect by doing something
 		//in this stream's subscription? (not sure if necessary)
 		const disconnectionStream  = fromEvent<SocketEvent>(client, 'close');
@@ -220,13 +221,12 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 		});
 	}
 
-	function checkAuth ([client, req]: [Client, IncomingMessage]) {
+	function checkAuth ([[client, req]]: [[Client, IncomingMessage]]) {
 		return fromEvent<SocketEvent>(client, 'message').pipe(
 			take(1),
-			flatMap(evt => {
+			mergeMap(evt => {
 				try {
 					const msg = JSON.parse(evt.data);
-					console.log(msg);
 					if (msg.data.topic === 'auth' &&
 							msg.data.contents === config.eventBus.secret) {
 						client.reqUrl = req.url as string;
@@ -242,10 +242,12 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 	}
 
 	const outgoingMessageStreamSubscription = merge(
-		fromEvent(wss, 'connection', Array.of) as Observable<[Client, IncomingMessage]>,
-		fromEvent(ws, 'connection', Array.of) as Observable<[Client, IncomingMessage]>
+        fromEvent(wss, 'connection').pipe(
+            map(Array.of)
+        ),
+        fromEvent(ws, 'connection').pipe(map(Array.of))
 	).pipe(
-		flatMap(checkAuth)
+		mergeMap<any, any>(checkAuth)
 	).subscribe(handleConnection);
 
 	return [
