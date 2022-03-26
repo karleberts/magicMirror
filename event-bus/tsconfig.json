@@ -4,11 +4,17 @@
         "noImplicitAny": true,
         "module": "commonjs",
         "esModuleInterop": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
         "target": "es5"
     },
+    "exclude": [
+        "node_modules",
+    ],
 	"files": [
 		"client.ts",
         "server.ts",
+        "startServer.ts",
 		"websocketSubject.ts"
 	]
 }

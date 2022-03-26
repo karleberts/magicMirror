@@ -11,15 +11,24 @@ import signal
 import sys
 import time
 import cv2
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+try:
+    from picamera.array import PiRGBArray
+    from picamera import PiCamera
+except ImportError:
+    print("PiCamera not installed")
 from tornado import ioloop
 from rx.subjects import Subject
 from rx import Observable
+try:
+    import asyncio
+    from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+    asyncio.set_event_loop_policy(AnyThreadEventLoopPolicy())
+except ImportError:
+    print("asyncio not found")
 
 DIRNAME = os.path.dirname(__file__)
-EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', 'node_modules', 'event-bus', 'client.py'))
-CONFIG_FILE = open(os.path.join(DIRNAME, '..', '..', 'config.json'), 'r')
+EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', '..', 'event-bus', 'client.py'))
+CONFIG_FILE = open(os.path.join(DIRNAME, '..', '..', '..', 'config.json'), 'r')
 CASCADE_PATH = os.path.join(DIRNAME, 'haarcascade_frontalface_default.xml')
 CONFIG = json.load(CONFIG_FILE)
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
@@ -36,14 +45,11 @@ timer = Observable.interval(CAPTURE_INTERVAL)
 
 def get_image_as_array(camera):
     """grab a frame and convert to a numpy array"""
-    # image = cv2.imread(os.path.join(DIRNAME, 'snapshot.jpg'))
-    # raw_capture = PiRGBArray(camera)
-    # t = time.time()
-    camera.capture(RAW_CAPTURE, format='bgr', use_video_port=True)
-    image = RAW_CAPTURE.array
-    # u = time.time()
-    # elapsed = u - t
-    # print('{} capture'.format(elapsed))
+    if camera is None:
+        image = cv2.imread(os.path.join(DIRNAME, 'snapshot.jpg'))
+    else:
+        camera.capture(RAW_CAPTURE, format='bgr', use_video_port=True)
+        image = RAW_CAPTURE.array
     return image
 def find_faces_in_image(gray):
     """Find faces in the given opencv numpy array"""
@@ -68,27 +74,34 @@ def find_faces_in_image(gray):
     # elapsed = u - t
     # print('{} searching faces'.format(elapsed))
     return len(faces)
-def check_image_brightness(gray):
+def check_image_brightness(image):
     global LIGHT_CHECK_COUNT
-    if LIGHT_CHECK_COUNT > 30:
+    if True or LIGHT_CHECK_COUNT > 30:
         LIGHT_CHECK_COUNT = 0
-        return cv2.mean(gray) < AVG_PIXEL_THRESHOLD
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        brightness = cv2.mean(hsv)
+        (H, S, V) = [int(x) for x in brightness[:3]]
+        print('H S V = {} {} {}'.format(H, S, V))
+        return V / 255
     else:
         LIGHT_CHECK_COUNT = LIGHT_CHECK_COUNT + 1
-        return False
-    
+        return None
+
 def get_and_process_image():
     """event_bus message handler"""
     global RAW_CAPTURE
     global SHOW_CV
     # print('doing a face check')
     camera = get_camera()
+    print('camera is none?: {}'.format(camera is None))
+    result = {}
     try:
         image = get_image_as_array(camera)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        check_image_brightness(gray)
+        result["brightness"] = check_image_brightness(image)
         face_count = find_faces_in_image(gray)
-        RAW_CAPTURE.truncate(0)
+        if RAW_CAPTURE is not None:
+            RAW_CAPTURE.truncate(0)
         if SHOW_CV:
             camera.annotate_text = ('analog_gain: {}, brightness: {}, contrast: {}, exposure_speed: {}, faces: {}'
                                     .format(float(camera.analog_gain), float(camera.brightness), camera.brightness, camera.exposure_speed, face_count))
@@ -96,10 +109,11 @@ def get_and_process_image():
         raise
     except Exception:
         camera.close()
-        ioloop.IOLoop.current(True).stop()
+        ioloop.IOLoop.instance().stop()
         sys.exit()
-    # print("found {0} faces".format(face_count))
-    return face_count > 0
+    print("found {0} faces".format(face_count))
+    result["has-faces?"] = face_count > 0
+    return result
 
 def get_camera(should_create=True):
     """return or create a camera instance"""
@@ -108,11 +122,15 @@ def get_camera(should_create=True):
     if CAMERA_INST is not None:
         return CAMERA_INST
     elif should_create:
-        CAMERA_INST = PiCamera(resolution='480x368')
-        CAMERA_INST.exposure_mode = 'night'
-        RAW_CAPTURE = PiRGBArray(CAMERA_INST, size=(480, 368))
-        print('camera created')
-        #CAMERA_INST.start_preview()
+        try:
+            CAMERA_INST = PiCamera(resolution='480x368')
+            CAMERA_INST.exposure_mode = 'night'
+            RAW_CAPTURE = PiRGBArray(CAMERA_INST, size=(480, 368))
+            print('camera created')
+            #CAMERA_INST.start_preview()
+        except NameError:
+            print("Returning null camera")
+            CAMERA_INST = None
         return CAMERA_INST
     else:
         return CAMERA_INST
@@ -139,7 +157,7 @@ def stop():
         print('camera closed')
     else:
         print('camera already closed')
-    ioloop.IOLoop.current(True).stop()
+    ioloop.IOLoop.instance().stop()
     sys.exit()
 
 def handle_debug_req(req):
@@ -180,6 +198,7 @@ def start():
     print('connected to event bus')
     #close the camera and kill the app on sigterm
     signal.signal(signal.SIGTERM, lambda sig, frame: stop())
+    signal.signal(signal.SIGINT, lambda sig, frame: stop())
     pause_stream = listen_for_pause()
     time.sleep(1)
     last_result = False
@@ -192,10 +211,14 @@ def start():
                      .map(lambda x: get_and_process_image())
                      .share())
     found_stream = (result_stream
-                    .filter(lambda x: x is True))
+                    .filter(lambda x: x["has-faces?"] is True)
+                    .map(lambda x: True))
     not_found_stream = (result_stream.scan(lambda acc, x: ([x] + acc)[:FRAME_COUNT_UNTIL_FALSE], [])
-                        .filter(lambda buf: all(result is False for result in buf))
+                        .filter(lambda buf: all(result["has-faces?"] is False for result in buf))
                         .map(lambda res: False))
+    brightness_stream = (result_stream
+                         .filter(lambda x: x["brightness"] is not None)
+                         .subscribe(lambda x: EVENT_BUS.send_message('facedetect.brightness', x["brightness"])))
     (Observable.merge(found_stream, not_found_stream)
      .distinct_until_changed()
      .subscribe(handle_result))
@@ -216,8 +239,9 @@ def start():
 def main():
     """kick this party off"""
     EVENT_BUS.connect(ENDPOINT_ID, start)
+    #ioloop.IOLoop.current(True).start()
+    ioloop.IOLoop.instance().start()
     print('running')
 
 if __name__ == '__main__':
     main()
-    ioloop.IOLoop.current(True).start()

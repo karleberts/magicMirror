@@ -2,13 +2,18 @@ from __future__ import print_function
 import os
 import json
 import urllib
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 from threading import Timer
 from funcy import merge, once, partial
 from tornado.websocket import websocket_connect
 from rx.subjects import ReplaySubject, Subject
 
+DIRNAME = os.path.dirname(__file__)
 def get_config():
-    config_file = open('../../config.json', 'r')
+    config_file = open(os.path.join(DIRNAME, '..', 'config.json'), 'r')
     config = json.load(config_file)
     config_file.close()
     return config
@@ -62,10 +67,10 @@ def connect(endpoint_id, callback):
                 VARS['message_queue'].on_next(msg)
             VARS['message_buffer'] = []
             callback()
-    query = urllib.urlencode({'endpointId': endpoint_id})
+    query = urlencode({'endpointId': endpoint_id})
     port = CONFIG['ports']['eventBus']
     url = 'ws://localhost:{!s}/?{!s}'.format(port, query)
-    websocket_connect(url, None, _connect_callback, None, _on_message)
+    websocket_connect(url, callback=_connect_callback, connect_timeout=None, on_message_callback=_on_message)
 
 def reconnect():
     """IFF the socket is disconnected, make a reconnect attempt in 1 sec"""
