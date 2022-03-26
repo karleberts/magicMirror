@@ -11,6 +11,8 @@ import signal
 import sys
 import time
 import cv2
+import numpy as np
+from base64 import b64encode
 try:
     from picamera.array import PiRGBArray
     from picamera import PiCamera
@@ -27,8 +29,17 @@ except ImportError:
     print("asyncio not found")
 
 DIRNAME = os.path.dirname(__file__)
-EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', '..', 'event-bus', 'client.py'))
-CONFIG_FILE = open(os.path.join(DIRNAME, '..', '..', '..', 'config.json'), 'r')
+try:
+    EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', '..', 'event-bus', 'client.py'))
+except ImportError:
+    #legacy file location
+    EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', 'node_modules', 'event-bus', 'client.py'))
+try:
+    CONFIG_FILE = open(os.path.join(DIRNAME, '..', '..', '..', 'config.json'), 'r')
+except IOError:
+    #legacy file location
+    CONFIG_FILE = open(os.path.join(DIRNAME, '..', '..', 'config.json'), 'r')
+
 CASCADE_PATH = os.path.join(DIRNAME, 'haarcascade_frontalface_default.xml')
 CONFIG = json.load(CONFIG_FILE)
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
@@ -97,6 +108,8 @@ def get_and_process_image():
     result = {}
     try:
         image = get_image_as_array(camera)
+        [_, encoded] = cv2.imencode('.jpg', image)
+        result["img-base64"] = b64encode(np.array(encoded).tostring()).decode('ascii')
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         result["brightness"] = check_image_brightness(image)
         face_count = find_faces_in_image(gray)
@@ -232,6 +245,12 @@ def start():
     (EVENT_BUS.request_stream
      .filter(lambda req: req['topic'] == 'faceDetect.getStatus')
      .subscribe(lambda req: req['respond'](last_result)))
+
+    (EVENT_BUS.request_stream
+     .filter(lambda req: req['topic'] == 'faceDetect.getImage')
+     .subscribe(lambda req: result_stream
+      .take(1)
+      .subscribe(lambda x: req['respond'](x['img-base64']))))
 
     EVENT_BUS.send_message('faceDetect.ready', True, 'magicMirror')
 
