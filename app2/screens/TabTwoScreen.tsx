@@ -1,15 +1,29 @@
 import * as React from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { useState } from 'react';
+import { StyleSheet, Image } from 'react-native';
+import { Subscription } from 'rxjs';
 
 import EditScreenInfo from '../components/EditScreenInfo';
 import { Text, View } from '../components/Themed';
+import eventBus from '../lib/eventBusClient';
 
 export default function TabTwoScreen() {
+    const [img, setImg] = useState();
+    useEffect(() => {
+        const makeRequest = () => eventBus.request('faceDetect', 'faceDetect.getImage');
+        const handleResponse = (response: any) => {
+            setImg(response);
+            subscriber = makeRequest().subscribe(handleResponse);
+        };
+        let subscriber = makeRequest().subscribe(handleResponse);
+        return () => subscriber && subscriber.unsubscribe();
+    }, []);
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="/screens/TabTwoScreen.tsx" />
+      {!!img && (
+        <Image style={{width: 480, height: 368}} source={{uri: `data:image/png;base64,${img}`}} />
+      )}
     </View>
   );
 }

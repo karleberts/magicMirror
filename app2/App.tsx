@@ -13,7 +13,7 @@ monitorConnection(store.dispatch, store.getState);
 
 export default function App() {
   const isLoadingComplete = useCachedResources();
-  const colorScheme = useColorScheme();
+  const colorScheme = 'light';
 
   if (!isLoadingComplete) {
     return null;
