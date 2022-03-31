@@ -26,6 +26,14 @@ function sendDebugRequest (isDebug: boolean) {
 	eventBus.request('faceDetect', 'faceDetect.showDebug', isDebug);
 }
 
+function sendNoFaces () {
+    eventBus.sendMessage('faceDetect.result', false);
+}
+
+function sendYesFaces () {
+    eventBus.sendMessage('faceDetect.result', true);
+}
+
 function TabOneScreen({ navigation, connectionStatus }: TabOneProps) {
     const [debugState, setDebug] = React.useState(false);
     const toggleDebug = () => {
@@ -57,6 +65,20 @@ function TabOneScreen({ navigation, connectionStatus }: TabOneProps) {
                 onPress={toggleDebug}
             >
                 <Text>{(debugState) ? 'Hide Debug' : 'Show Debug'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.button}
+                onPress={sendNoFaces}
+            >
+                <Text>Send No Faces</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.button}
+                onPress={sendYesFaces}
+            >
+                <Text>Send Yes Faces</Text>
             </TouchableOpacity>
         </View>
     );

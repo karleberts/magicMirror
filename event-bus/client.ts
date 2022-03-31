@@ -1,6 +1,5 @@
 import * as R from 'ramda';
-import { tap } from 'ramda';
-import { Subject, interval, Observable } from 'rxjs';
+import { Subject, interval, Observable, iif } from 'rxjs';
 import {
     filter,
     flatMap,
@@ -159,6 +158,7 @@ export default class EventBusClient {
 
     /**
      * Send a request to a specified endpoint
+     * or all endpoints with {endpointId: '*'}
      * @param {string} endpointId - Request recipient's endpoint id (e.g. magicMirror.ui)
      * @param {string} topic - Request identifier
      * @param {object} [params] - Additional request params (some requests may not require params)
@@ -175,7 +175,11 @@ export default class EventBusClient {
         return this.socketEvent$.pipe(
             filter(evt => evt.method === 'request.response' &&
                 evt.from === endpointId && evt.id === id),
-            take(1),
+            ((src: Observable<SocketEvent>) => iif(
+                () => endpointId === '*',
+                src,
+                take<SocketEvent>(1)(src)
+            )),
             timeout(10000), //dispose of the response stream after 10s?
             map(response => {
                 if (response.error) { throw new Error(response.error); }

@@ -192,7 +192,8 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 		//Stream of all 'request' messages from any socket
 		//filter out any not designated for this endpoint
 		const requestsForEndpointStream = messageStream.pipe(
-			filter(msg => msg.method === 'request' && msg.to === endpointId)
+			filter(msg => msg.method === 'request' &&
+                (msg.to === endpointId || msg.to === '*'))
 		);
 
 
