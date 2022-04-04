@@ -5,15 +5,15 @@ import { actions as calendarActions } from '../redux/modules/calendar';
 const { fetchEvents } = calendarActions;
 
 function mapStateToProps (state: any) {
-	return {
-		events: state.calendar.events,
-	};
+    return {
+        events: state.calendar.events,
+    };
 }
 
 function mapDispatchToProps (dispatch: Dispatch<Action>) {
-	return {
-		fetchEvents: () => dispatch(fetchEvents()),
-	};
+    return {
+        fetchEvents: () => dispatch(fetchEvents()),
+    };
 }
 
 export default connect(mapStateToProps, mapDispatchToProps);

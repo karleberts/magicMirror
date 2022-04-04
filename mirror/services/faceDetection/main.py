@@ -31,7 +31,7 @@ except ImportError:
 DIRNAME = os.path.dirname(__file__)
 try:
     EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', '..', 'event-bus', 'client.py'))
-except ImportError:
+except IOError:
     #legacy file location
     EVENT_BUS = imp.load_source('client', os.path.join(DIRNAME, '..', '..', 'node_modules', 'event-bus', 'client.py'))
 try:
@@ -49,7 +49,6 @@ RAW_CAPTURE = None
 CAPTURE_INTERVAL = 350
 FRAME_COUNT_UNTIL_FALSE = 15 # num. of frames to see 0 faces in until emitting a 'not found' result (~5s?)
 SHOW_CV = False
-LIGHT_CHECK_COUNT = 0
 AVG_PIXEL_THRESHOLD = 40; # avg value of gray image, below which we will pause face detection and disable the screen
 
 timer = Observable.interval(CAPTURE_INTERVAL)
@@ -57,7 +56,8 @@ timer = Observable.interval(CAPTURE_INTERVAL)
 def get_image_as_array(camera):
     """grab a frame and convert to a numpy array"""
     if camera is None:
-        image = cv2.imread(os.path.join(DIRNAME, 'snapshot.jpg'))
+        filename = sys.argv[1] if len(sys.argv) >= 2 else 'snapshot.jpg' 
+        image = cv2.imread(os.path.join(DIRNAME, filename))
     else:
         camera.capture(RAW_CAPTURE, format='bgr', use_video_port=True)
         image = RAW_CAPTURE.array
@@ -85,36 +85,35 @@ def find_faces_in_image(gray):
     # elapsed = u - t
     # print('{} searching faces'.format(elapsed))
     return len(faces)
-def check_image_brightness(image):
-    global LIGHT_CHECK_COUNT
-    if True or LIGHT_CHECK_COUNT > 30:
-        LIGHT_CHECK_COUNT = 0
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        brightness = cv2.mean(hsv)
-        (H, S, V) = [int(x) for x in brightness[:3]]
-        print('H S V = {} {} {}'.format(H, S, V))
-        return V / 255
-    else:
-        LIGHT_CHECK_COUNT = LIGHT_CHECK_COUNT + 1
-        return None
 
-def get_and_process_image():
+def get_image():
     """event_bus message handler"""
     global RAW_CAPTURE
     global SHOW_CV
-    # print('doing a face check')
     camera = get_camera()
-    print('camera is none?: {}'.format(camera is None))
     result = {}
     try:
         image = get_image_as_array(camera)
-        [_, encoded] = cv2.imencode('.jpg', image)
-        result["img-base64"] = b64encode(np.array(encoded).tostring()).decode('ascii')
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        result["brightness"] = check_image_brightness(image)
-        face_count = find_faces_in_image(gray)
+        result['img-array'] = image
         if RAW_CAPTURE is not None:
             RAW_CAPTURE.truncate(0)
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception:
+        camera.close()
+        ioloop.IOLoop.instance().stop()
+        sys.exit()
+    return result
+
+def assoc_result(result):
+    """do face detection"""
+    global SHOW_CV
+    # print('doing a face check')
+    camera = get_camera()
+    image = result["img-array"]
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        face_count = find_faces_in_image(gray)
         if SHOW_CV:
             camera.annotate_text = ('analog_gain: {}, brightness: {}, contrast: {}, exposure_speed: {}, faces: {}'
                                     .format(float(camera.analog_gain), float(camera.brightness), camera.brightness, camera.exposure_speed, face_count))
@@ -124,7 +123,7 @@ def get_and_process_image():
         camera.close()
         ioloop.IOLoop.instance().stop()
         sys.exit()
-    print("found {0} faces".format(face_count))
+    # print("found {0} faces".format(face_count))
     result["has-faces?"] = face_count > 0
     return result
 
@@ -218,10 +217,11 @@ def start():
     def handle_result(res):
         last_result = res
         EVENT_BUS.send_message('faceDetect.result', res)
-    result_stream = (timer
-                     .with_latest_from(pause_stream, lambda x, is_paused: is_paused)
-                     .filter(lambda is_paused: is_paused is not True)
-                     .map(lambda x: get_and_process_image())
+    img_stream = timer.map(lambda x: get_image())
+    result_stream = (img_stream
+                     .with_latest_from(pause_stream, lambda x, is_paused: [x, is_paused])
+                     .filter(lambda x: x[1] is not True)
+                     .map(lambda x: assoc_result(x[0]))
                      .share())
     found_stream = (result_stream
                     .filter(lambda x: x["has-faces?"] is True)
@@ -229,9 +229,11 @@ def start():
     not_found_stream = (result_stream.scan(lambda acc, x: ([x] + acc)[:FRAME_COUNT_UNTIL_FALSE], [])
                         .filter(lambda buf: all(result["has-faces?"] is False for result in buf))
                         .map(lambda res: False))
-    brightness_stream = (result_stream
-                         .filter(lambda x: x["brightness"] is not None)
-                         .subscribe(lambda x: EVENT_BUS.send_message('facedetect.brightness', x["brightness"])))
+    brightness_stream = (img_stream
+                         .filter(lambda x, i: i % 15 == 0)
+                         .map(lambda x: cv2.cvtColor(x["img-array"], cv2.COLOR_BGR2HSV))
+                         .map(lambda hsv: int(cv2.mean(hsv)[2]) / 255)
+                         .subscribe(lambda brightness: EVENT_BUS.send_message('faceDetect.brightness', brightness)))
     (Observable.merge(found_stream, not_found_stream)
      .distinct_until_changed()
      .subscribe(handle_result))
@@ -250,7 +252,9 @@ def start():
      .filter(lambda req: req['topic'] == 'faceDetect.getImage')
      .subscribe(lambda req: result_stream
       .take(1)
-      .subscribe(lambda x: req['respond'](x['img-base64']))))
+      .map(lambda result: cv2.imencode('.jpg', result['img-array'])[1])
+      .map(lambda encoded: b64encode(np.array(encoded).tostring()).decode('ascii'))
+      .subscribe(lambda msg: req['respond'](msg))))
 
     EVENT_BUS.send_message('faceDetect.ready', True, 'magicMirror')
 
