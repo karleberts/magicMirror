@@ -45,13 +45,28 @@ CONFIG = json.load(CONFIG_FILE)
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
 ENDPOINT_ID = 'faceDetect'
 CAMERA_INST = None
-RAW_CAPTURE = None
+CAPTURE_POOL = []
+CAPTURE_POOL_INDEX = 0
 CAPTURE_INTERVAL = 350
 FRAME_COUNT_UNTIL_FALSE = 15 # num. of frames to see 0 faces in until emitting a 'not found' result (~5s?)
 SHOW_CV = False
-AVG_PIXEL_THRESHOLD = 40; # avg value of gray image, below which we will pause face detection and disable the screen
 
 timer = Observable.interval(CAPTURE_INTERVAL)
+
+def get_capture_array(camera):
+    """silly array based pool of capture resources"""
+    global CAPTURE_POOL
+    global CAPTURE_POOL_INDEX
+    pool_len = len(CAPTURE_POOL)
+    cap = None
+    if pool_len < 5:
+        CAPTURE_POOL.append(PiRGBArray(camera, size=(480, 368)))
+        cap = CAPTURE_POOL[CAPTURE_POOL_INDEX]
+    else:
+        cap = CAPTURE_POOL[CAPTURE_POOL_INDEX]
+        cap.truncate(0)
+    CAPTURE_POOL_INDEX = (CAPTURE_POOL_INDEX + 1) % 5
+    return cap
 
 def get_image_as_array(camera):
     """grab a frame and convert to a numpy array"""
@@ -59,9 +74,11 @@ def get_image_as_array(camera):
         filename = sys.argv[1] if len(sys.argv) >= 2 else 'snapshot.jpg' 
         image = cv2.imread(os.path.join(DIRNAME, filename))
     else:
-        camera.capture(RAW_CAPTURE, format='bgr', use_video_port=True)
-        image = RAW_CAPTURE.array
+        cap = get_capture_array(camera)
+        camera.capture(cap, format='bgr', use_video_port=True)
+        image = cap.array
     return image
+
 def find_faces_in_image(gray):
     """Find faces in the given opencv numpy array"""
     global SHOW_CV
@@ -86,17 +103,16 @@ def find_faces_in_image(gray):
     # print('{} searching faces'.format(elapsed))
     return len(faces)
 
-def get_image():
+def get_image(x):
     """event_bus message handler"""
-    global RAW_CAPTURE
     global SHOW_CV
     camera = get_camera()
     result = {}
+    if camera is None:
+        return result
     try:
         image = get_image_as_array(camera)
         result['img-array'] = image
-        if RAW_CAPTURE is not None:
-            RAW_CAPTURE.truncate(0)
     except (KeyboardInterrupt, SystemExit):
         raise
     except Exception:
@@ -109,8 +125,9 @@ def assoc_result(result):
     """do face detection"""
     global SHOW_CV
     # print('doing a face check')
-    camera = get_camera()
     image = result["img-array"]
+    if image is None:
+        return result;
     try:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         face_count = find_faces_in_image(gray)
@@ -130,14 +147,12 @@ def assoc_result(result):
 def get_camera(should_create=True):
     """return or create a camera instance"""
     global CAMERA_INST
-    global RAW_CAPTURE
     if CAMERA_INST is not None:
         return CAMERA_INST
     elif should_create:
         try:
             CAMERA_INST = PiCamera(resolution='480x368')
             CAMERA_INST.exposure_mode = 'night'
-            RAW_CAPTURE = PiRGBArray(CAMERA_INST, size=(480, 368))
             print('camera created')
             #CAMERA_INST.start_preview()
         except NameError:
@@ -189,35 +204,24 @@ def handle_debug_req(req):
 #     print('testing a message')
 #     print(msg)
 
-def listen_for_pause():
-    pause_stream = (EVENT_BUS.request_stream
-                    .filter(lambda req: req['topic'] == 'faceDetect.pause')
-                    .map(lambda req: req['params'])
-                    .start_with(False)
-                    .distinct_until_changed()
-                    .publish())
-    #close the camera if we get paused, create a camera when we get unpaused
-    (pause_stream
-     .filter(lambda is_paused: is_paused is False)
-     .subscribe(lambda is_paused: get_camera()))
-    (pause_stream
-     .filter(lambda is_paused: is_paused is True)
-     .subscribe(lambda is_pause: close_camera()))
-    return pause_stream
-
 def start():
     """Callback when event_bus connection succeeds"""
     print('connected to event bus')
     #close the camera and kill the app on sigterm
     signal.signal(signal.SIGTERM, lambda sig, frame: stop())
     signal.signal(signal.SIGINT, lambda sig, frame: stop())
-    pause_stream = listen_for_pause()
+    pause_stream = (EVENT_BUS.request_stream
+                    .filter(lambda req: req['topic'] == 'faceDetect.pause')
+                    .map(lambda req: req['params'])
+                    .start_with(False)
+                    .distinct_until_changed()
+                    .publish())
     time.sleep(1)
     last_result = False
     def handle_result(res):
         last_result = res
         EVENT_BUS.send_message('faceDetect.result', res)
-    img_stream = timer.map(lambda x: get_image())
+    img_stream = timer.map(lambda x: get_image(x)).share()
     result_stream = (img_stream
                      .with_latest_from(pause_stream, lambda x, is_paused: [x, is_paused])
                      .filter(lambda x: x[1] is not True)
@@ -232,7 +236,7 @@ def start():
     brightness_stream = (img_stream
                          .filter(lambda x, i: i % 15 == 0)
                          .map(lambda x: cv2.cvtColor(x["img-array"], cv2.COLOR_BGR2HSV))
-                         .map(lambda hsv: int(cv2.mean(hsv)[2]) / 255)
+                         .map(lambda hsv: cv2.mean(hsv)[2] / 255)
                          .subscribe(lambda brightness: EVENT_BUS.send_message('faceDetect.brightness', brightness)))
     (Observable.merge(found_stream, not_found_stream)
      .distinct_until_changed()
@@ -262,8 +266,8 @@ def start():
 def main():
     """kick this party off"""
     EVENT_BUS.connect(ENDPOINT_ID, start)
-    #ioloop.IOLoop.current(True).start()
-    ioloop.IOLoop.instance().start()
+    ioloop.IOLoop.current(True).start()
+    #ioloop.IOLoop.instance().start()
     print('running')
 
 if __name__ == '__main__':
