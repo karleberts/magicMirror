@@ -42,9 +42,9 @@ class UiModePicker extends React.Component<UiModePickerProps, UiModePickerState>
             .pipe(
 			    merge(eventBus.subscribe('ui.modeChanged'))
             )
-			.subscribe(mode => this.setState((state: UiModePickerState) => {
-                return ({...state, mode});
-            }));
+			.subscribe(msg => { console.log(msg.mode); this.setState((state: UiModePickerState) => {
+                return ({...state, mode: msg.mode});
+            }); });
 	}
 
 	unsubscribeFromModeUpdates () {

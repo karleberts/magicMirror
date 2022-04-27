@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
 import { connect } from 'react-redux';
+import partial from 'ramda/es/partial';
 
 import { Text, View } from '../components/Themed';
 import { RootTabScreenProps } from '../types';
 import UiModePicker from '../components/UiModePicker';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import eventBus from '../lib/eventBusClient';
+import { useEffect } from 'react';
+import { SocketEvent, SocketMessage } from 'event-bus/types';
 
 function mapStateToProps (state: any) {
     return {
@@ -26,8 +29,18 @@ function sendDebugRequest (isDebug: boolean) {
 	eventBus.request('faceDetect', 'faceDetect.showDebug', isDebug);
 }
 
+function sendFaceDetectResult(result: boolean) {
+	eventBus.sendMessage('faceDetect.result', result);
+}
+
 function TabOneScreen({ navigation, connectionStatus }: TabOneProps) {
     const [debugState, setDebug] = React.useState(false);
+    const [brightness, setBrightness] = React.useState<number>();
+    useEffect(() => {
+        const subscription = eventBus.subscribe('faceDetect.brightness')
+            .subscribe((msg: SocketMessage<number>) => { setBrightness(msg.data.contents); });
+        return subscription.unsubscribe.bind(subscription);
+    }, []);
     const toggleDebug = () => {
         sendDebugRequest(!debugState);
         setDebug(!debugState);
@@ -36,6 +49,7 @@ function TabOneScreen({ navigation, connectionStatus }: TabOneProps) {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>{connectionStatus}</Text>
+            {!!brightness && (<Text>{brightness}</Text>)}
 
             <View style={styles.separator} />
 
@@ -57,6 +71,20 @@ function TabOneScreen({ navigation, connectionStatus }: TabOneProps) {
                 onPress={toggleDebug}
             >
                 <Text>{(debugState) ? 'Hide Debug' : 'Show Debug'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.button}
+                onPress={partial(sendFaceDetectResult, [true]) as () => void}
+            >
+                <Text>Send Yes Face</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.button}
+                onPress={partial(sendFaceDetectResult, [false]) as () => void}
+            >
+                <Text>Send No Face</Text>
             </TouchableOpacity>
         </View>
     );

@@ -1,5 +1,5 @@
 import Client from 'event-bus/client';
-import config from '../../config.json';
+import config from '../config';
 
 config.uiHostname = config.cloudflare.domain;
 config.eventBus.useSsl = true;

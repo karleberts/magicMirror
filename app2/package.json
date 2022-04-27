@@ -1,5 +1,4 @@
 {
-  "main": "__generated__/AppEntry.js",
   "name": "mirror-app",
   "version": "0.1.0",
   "scripts": {
@@ -9,7 +8,8 @@
     "web": "expo start --web",
     "eject": "expo eject",
     "test": "jest --watchAll",
-    "postinstall": "expo-yarn-workspaces postinstall"
+    "postinstall": "expo-yarn-workspaces postinstall",
+    "eas-build-pre-install": "restore_config.sh"
   },
   "jest": {
     "preset": "jest-expo"
@@ -20,6 +20,7 @@
     "@react-navigation/bottom-tabs": "^6.0.5",
     "@react-navigation/native": "^6.0.2",
     "@react-navigation/native-stack": "^6.1.0",
+    "@unimodules/core": "^7.1.2",
     "event-bus": "^1.0.0",
     "expo": "~42.0.1",
     "expo-asset": "~8.3.2",
@@ -28,17 +29,21 @@
     "expo-linking": "~2.3.1",
     "expo-splash-screen": "~0.11.2",
     "expo-status-bar": "~1.0.4",
+    "expo-updates": "~0.8.2",
     "expo-web-browser": "~9.2.0",
     "expo-yarn-workspaces": "^1.0",
-    "react": "16.13.1",
+    "ramda": "^0.28.0",
+    "react": "17.0.2",
     "react-dom": "16.13.1",
-    "react-native": "https://github.com/expo/react-native/archive/sdk-42.0.0.tar.gz",
+    "react-native": "0.68.1",
     "react-native-gesture-handler": "~1.10.2",
     "react-native-reanimated": "~2.2.0",
     "react-native-safe-area-context": "3.2.0",
     "react-native-screens": "~3.4.0",
+    "react-native-unimodules": "^0.14.10",
     "react-native-web": "~0.13.12",
-    "react-redux": "^4.4.5"
+    "react-redux": "^4.4.5",
+    "unimodules-app-loader": "^3.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",
@@ -52,5 +57,8 @@
     "rxjs": "^6.4.0",
     "typescript": "~4.0.0"
   },
+  "nohoist": [
+    "expo-constants"
+  ],
   "private": true
 }
