@@ -9,7 +9,7 @@
     "eject": "expo eject",
     "test": "jest --watchAll",
     "postinstall": "expo-yarn-workspaces postinstall",
-    "eas-build-pre-install": "restore_config.sh"
+    "eas-build-pre-install": "./restore_config.sh"
   },
   "jest": {
     "preset": "jest-expo"
