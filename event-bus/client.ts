@@ -1,5 +1,4 @@
 import * as R from 'ramda';
-import { tap } from 'ramda';
 import { Subject, interval, Observable } from 'rxjs';
 import {
     filter,
@@ -8,11 +7,10 @@ import {
     take,
     timeout,
     withLatestFrom,
-    publish,
 	takeUntil
 } from 'rxjs/operators';
 
-import { SocketEvent } from './types';
+import { SocketEvent, SocketMessage, SocketRequest } from './types';
 import RxWebsocketSubject from './websocketSubject';
 
 export interface Config {
@@ -28,14 +26,14 @@ export interface Config {
 }
 
 export default class EventBusClient {
-    private socketEvent$ = new Subject<SocketEvent>();
-    private outgoingMessage$ = new Subject<SocketEvent>();
+    private socketEvent$ = new Subject<SocketEvent<any>>();
+    private outgoingMessage$ = new Subject<SocketEvent<any>>();
     private messageBuffer = <any[]>[];
     private messageId = 0;
-    private sock: RxWebsocketSubject<SocketEvent>;
+    private sock: RxWebsocketSubject<SocketEvent<any>>;
     private endpointId: string;
     public connectionStatus: Observable<boolean>;
-    request$ = this.socketEvent$.pipe(
+    request$:Observable<SocketRequest<any>> = this.socketEvent$.pipe(
         filter(evt => (evt.method === 'request')),
         map(request => ({
             topic: request.data.topic,
@@ -48,7 +46,7 @@ export default class EventBusClient {
             const proto = (config.eventBus.useSsl) ? 'wss' : 'ws';
             const port = (config.eventBus.useSsl) ? config.ports.eventBusSsl : config.ports.eventBus;
             const url = `${proto}://${config.uiHostname}:${port}/?endpointId=${encodeURIComponent(endpointId)}`;
-            const sock = this.sock = new RxWebsocketSubject<SocketEvent>(url);
+            const sock = this.sock = new RxWebsocketSubject<SocketEvent<any>>(url);
             this.connectionStatus = sock.connectionStatus;
             this.endpointId = endpointId;
 
@@ -133,7 +131,7 @@ export default class EventBusClient {
 				filter(msg => msg.method === 'unsubscribe' &&
 					!!R.path(['data', 'topic'], msg))
 			))
-        );
+        ) as Observable<SocketMessage<any>>;
     }
 
     /**
@@ -181,7 +179,7 @@ export default class EventBusClient {
                 if (response.error) { throw new Error(response.error); }
                 return response.data;
             })
-        );
+        ) as Observable<any>;
     }
 
     /**
@@ -204,7 +202,7 @@ export default class EventBusClient {
      * Internal method for putting data out the socket
      * @param {object} msg - Packet to send over the socket, format should correspond to something the server knows how to interpret'
      */
-    private sendSocketMessage(msg: SocketEvent) {
+    private sendSocketMessage(msg: SocketEvent<any>) {
         if (this.sock) {
             msg = R.merge(msg, {
                 from: this.endpointId

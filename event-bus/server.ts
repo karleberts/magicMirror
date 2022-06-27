@@ -23,7 +23,7 @@ import {
 } from 'rxjs/operators';
 import WebSocket, { Server } from 'ws';
 import * as https from 'https';
-import { SocketEvent } from './types';
+import { SocketEvent, SocketMessage } from './types';
 import { IncomingMessage } from 'http';
 
 export interface Config {
@@ -59,7 +59,7 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 		.listen(SSL_PORT);
 	const wss = new WebSocketServer({server});
 	//stream of 'message' type messages
-	const messageBus = new Subject<SocketEvent>();
+	const messageBus = new Subject<SocketEvent<any>>();
 	const disconnect$ = new Subject();
 
 	function notifyReceived (ws: Client, method: string, id: string) {
@@ -82,7 +82,7 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
         console.log(`${endpointId} connected`);
 		//can dispose of the underlying streams on disconnect by doing something
 		//in this stream's subscription? (not sure if necessary)
-		const disconnectionStream  = fromEvent<SocketEvent>(client, 'close');
+		const disconnectionStream  = fromEvent<SocketEvent<any>>(client, 'close');
 		disconnectionStream.subscribe(() => disconnect$.next(endpointId));
 
 		if (endpointId === 'debug') {
@@ -99,10 +99,10 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 		/**
 		 * Stream of all incoming socket messages
 		 */
-		const socketMessages = fromEvent<SocketEvent>(client, 'message').pipe(
-			map((msg: SocketEvent) => JSON.parse(msg.data)),
+		const socketMessages = fromEvent<SocketEvent<any>>(client, 'message').pipe(
+			map((msg: SocketEvent<any>) => JSON.parse(msg.data)),
 			takeUntil(disconnectionStream),
-			// tap(msg => console.log('incoming msg', msg)),
+			 tap(msg => console.log('incoming msg', msg)),
 			share()
 		);
 
@@ -178,7 +178,7 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 			filter(msg => msg.method === 'message'),
 			withLatestFrom(
 				aggregateSubscriptionStream,
-				(message: SocketEvent, subscriptions) => ({message, subscriptions})
+				(message: SocketMessage<any>, subscriptions) => ({message, subscriptions})
 			),
 			filter(p => {
 				const { message, subscriptions } = p;
@@ -222,7 +222,7 @@ export default function createServer (WebSocketServer: typeof Server, config: Co
 	}
 
 	function checkAuth ([[client, req]]: [[Client, IncomingMessage]]) {
-		return fromEvent<SocketEvent>(client, 'message').pipe(
+		return fromEvent<SocketEvent<string>>(client, 'message').pipe(
 			take(1),
 			mergeMap(evt => {
 				try {
