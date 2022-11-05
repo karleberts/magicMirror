@@ -33,18 +33,20 @@ class UiModePicker extends React.Component<UiModePickerProps, UiModePickerState>
 	}
 
 	handleValueChange (value: string) {
+        if (this.state.mode === value) { return; }
+        console.log('requesting value to be set to ' + value + ' current state ' + this.state.mode);
 		eventBus.request('magicMirror', 'mode.set', {mode: value});
 	}
 
 	subscribeToModeUpdates () {
 		(this.mode$ && this.mode$.unsubscribe());
+        const incomingModeMessage$ = eventBus.subscribe('ui.modeChanged')
+            .pipe(map(msg => msg.data.contents));
 		this.mode$ = eventBus.request('magicMirror', 'mode.get')
-            .pipe(
-			    merge(eventBus.subscribe('ui.modeChanged'))
-            )
-			.subscribe(msg => { console.log(msg.mode); this.setState((state: UiModePickerState) => {
-                return ({...state, mode: msg.mode});
-            }); });
+            .pipe(merge(incomingModeMessage$))
+			.subscribe(mode => this.setState((state: UiModePickerState) => {
+                return ({...state, mode: mode});
+            }));
 	}
 
 	unsubscribeFromModeUpdates () {
