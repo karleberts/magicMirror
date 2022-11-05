@@ -6,7 +6,7 @@ import partial from 'ramda/es/partial';
 import { Text, View } from '../components/Themed';
 import { RootTabScreenProps } from '../types';
 import UiModePicker from '../components/UiModePicker';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Button } from 'react-native';
 import eventBus from '../lib/eventBusClient';
 import { useEffect } from 'react';
 import { SocketEvent, SocketMessage } from 'event-bus/types';
@@ -53,12 +53,10 @@ function TabOneScreen({ navigation, connectionStatus }: TabOneProps) {
 
             <View style={styles.separator} />
 
-            <TouchableOpacity
-                style={styles.button}
+            <Button
+                title="Restart"
                 onPress={sendRestartRequest}
-            >
-                <Text>Restart</Text>
-            </TouchableOpacity>
+            />
 
             <View style={styles.separator} />
 
@@ -66,26 +64,20 @@ function TabOneScreen({ navigation, connectionStatus }: TabOneProps) {
 
             <View style={styles.separator} />
 
-            <TouchableOpacity
-                style={styles.button}
+            <Button
+                title={(debugState) ? 'Hide Debug' : 'Show Debug'}
                 onPress={toggleDebug}
-            >
-                <Text>{(debugState) ? 'Hide Debug' : 'Show Debug'}</Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
-                style={styles.button}
+            <Button
                 onPress={partial(sendFaceDetectResult, [true]) as () => void}
-            >
-                <Text>Send Yes Face</Text>
-            </TouchableOpacity>
+                title="Send Yes Face"
+            />
 
-            <TouchableOpacity
-                style={styles.button}
+            <Button
                 onPress={partial(sendFaceDetectResult, [false]) as () => void}
-            >
-                <Text>Send No Face</Text>
-            </TouchableOpacity>
+                title="Send No Face"
+            />
         </View>
     );
 }
